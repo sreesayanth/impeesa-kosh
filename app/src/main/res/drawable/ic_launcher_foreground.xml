@@ -1,0 +1,8 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <!-- A bold lowercase "i" for Impeesa, centred in the 66dp safe zone. -->
+    <path android:fillColor="#FF0B0D10"
+        android:pathData="M54,30a6,6 0,1 1,0 12a6,6 0,1 1,0 -12z" />
+    <path android:fillColor="#FF0B0D10"
+        android:pathData="M48.5,48h11a1.5,1.5 0,0 1,1.5 1.5v26a1.5,1.5 0,0 1,-1.5 1.5h-11a1.5,1.5 0,0 1,-1.5 -1.5v-26a1.5,1.5 0,0 1,1.5 -1.5z" />
+</vector>

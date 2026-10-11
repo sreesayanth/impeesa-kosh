@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Impeesa Kosh</string>
+    <string name="tab_home">Home</string>
+    <string name="tab_insights">Insights</string>
+    <string name="tab_activity">Activity</string>
+    <string name="tab_accounts">Accounts</string>
+    <string name="action_add_transaction">Add transaction</string>
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="home_spent_in">Spent in %1$s</string>
+    <string name="home_income">Income</string>
+    <string name="home_recent">Recent</string>
+    <string name="home_empty_title">Your month starts here</string>
+    <string name="home_empty_body">Add your first spend and Impeesa will begin drawing your charts.</string>
+    <string name="coming_soon_body">This screen arrives in %1$s of the plan.</string>
+</resources>
