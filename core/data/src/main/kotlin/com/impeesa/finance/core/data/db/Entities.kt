@@ -2,6 +2,7 @@ package com.impeesa.finance.core.data.db
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Fts4
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.impeesa.finance.core.model.AccountType
@@ -81,4 +82,12 @@ data class TransactionEntity(
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
     @ColumnInfo(name = "deleted_at") val deletedAt: Long? = null,
+)
+
+/** Full-text index over merchant and note; Room keeps it in sync with `transactions`. */
+@Fts4(contentEntity = TransactionEntity::class)
+@Entity(tableName = "transactions_fts")
+data class TransactionFts(
+    val counterparty: String?,
+    val note: String?,
 )

@@ -18,9 +18,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,10 +46,18 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import com.impeesa.finance.LocalAppContainer
 import com.impeesa.finance.R
 import com.impeesa.finance.core.ui.theme.ImpeesaTheme
+import com.impeesa.finance.feature.accounts.AccountFormScreen
+import com.impeesa.finance.feature.accounts.AccountsScreen
+import com.impeesa.finance.feature.activity.ActivityScreen
+import com.impeesa.finance.feature.add.AddTransactionScreen
+import com.impeesa.finance.feature.detail.DetailScreen
 import com.impeesa.finance.feature.home.HomeScreen
 import com.impeesa.finance.feature.placeholder.ComingSoonScreen
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import com.impeesa.finance.core.ui.R as UiR
 
@@ -50,7 +65,9 @@ import com.impeesa.finance.core.ui.R as UiR
 @Serializable data object InsightsRoute
 @Serializable data object ActivityRoute
 @Serializable data object AccountsRoute
-@Serializable data object AddTransactionRoute
+@Serializable data class AddTransactionRoute(val editId: Long = 0L)
+@Serializable data class DetailRoute(val id: Long)
+@Serializable data class AccountFormRoute(val id: Long = 0L)
 
 private data class Tab(val route: Any, @StringRes val label: Int, @DrawableRes val icon: Int)
 
@@ -63,30 +80,82 @@ private val tabs = listOf(
 
 @Composable
 fun ImpeesaNavHost() {
+    val container = LocalAppContainer.current
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val destination = backStack?.destination
-    val showBar = destination?.hasRoute(AddTransactionRoute::class) != true
+    val onTab = tabs.any { destination?.hasRoute(it.route::class) == true }
+    val snackbar = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        container.undo.flow.collect { event ->
+            val result = snackbar.showSnackbar(event.message, actionLabel = "Undo", duration = SnackbarDuration.Short)
+            if (result == SnackbarResult.ActionPerformed) container.ioScope.launch { event.undo() }
+        }
+    }
 
     Box(Modifier.fillMaxSize().background(ImpeesaTheme.colors.ink)) {
         NavHost(navController = navController, startDestination = HomeRoute) {
             composable<HomeRoute> {
-                HomeScreen(onAddTransaction = { navController.navigate(AddTransactionRoute) })
+                HomeScreen(
+                    onAddTransaction = { navController.navigate(AddTransactionRoute()) },
+                    onOpenTransaction = { navController.navigate(DetailRoute(it)) },
+                    onSeeAll = { navController.switchTab(ActivityRoute) },
+                    onAccounts = { navController.switchTab(AccountsRoute) },
+                )
             }
             composable<InsightsRoute> { ComingSoonScreen(title = "Insights", phase = "Phase 6") }
-            composable<ActivityRoute> { ComingSoonScreen(title = "Activity", phase = "Phase 1") }
-            composable<AccountsRoute> { ComingSoonScreen(title = "Accounts", phase = "Phase 1") }
-            composable<AddTransactionRoute> {
-                ComingSoonScreen(title = "Add transaction", phase = "Phase 1", onClose = { navController.popBackStack() })
+            composable<ActivityRoute> {
+                ActivityScreen(onOpen = { navController.navigate(DetailRoute(it)) })
+            }
+            composable<AccountsRoute> {
+                AccountsScreen(
+                    onOpen = { navController.navigate(AccountFormRoute(it)) },
+                    onAdd = { navController.navigate(AccountFormRoute()) },
+                )
+            }
+            composable<AddTransactionRoute> { entry ->
+                val route = entry.toRoute<AddTransactionRoute>()
+                AddTransactionScreen(editId = route.editId.takeIf { it > 0 }, onClose = { navController.popBackStack() })
+            }
+            composable<DetailRoute> { entry ->
+                val route = entry.toRoute<DetailRoute>()
+                DetailScreen(
+                    id = route.id,
+                    onBack = { navController.popBackStack() },
+                    onEdit = { id ->
+                        // Editing can replace the rows (e.g. expense -> transfer), so return to the list afterwards.
+                        navController.navigate(AddTransactionRoute(editId = id)) {
+                            popUpTo<DetailRoute> { inclusive = true }
+                        }
+                    },
+                )
+            }
+            composable<AccountFormRoute> { entry ->
+                val route = entry.toRoute<AccountFormRoute>()
+                AccountFormScreen(id = route.id.takeIf { it > 0 }, onBack = { navController.popBackStack() })
             }
         }
-        if (showBar) {
-            BottomBar(
-                destination = destination,
-                onTab = { navController.switchTab(it) },
-                onAdd = { navController.navigate(AddTransactionRoute) },
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
+
+        Column(Modifier.align(Alignment.BottomCenter)) {
+            SnackbarHost(snackbar, modifier = Modifier.padding(horizontal = 16.dp)) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = ImpeesaTheme.colors.raised,
+                    contentColor = ImpeesaTheme.colors.textPrimary,
+                    actionColor = ImpeesaTheme.colors.lime,
+                    shape = RoundedCornerShape(16.dp),
+                )
+            }
+            if (onTab) {
+                BottomBar(
+                    destination = destination,
+                    onTab = { navController.switchTab(it) },
+                    onAdd = { navController.navigate(AddTransactionRoute()) },
+                )
+            } else {
+                Box(Modifier.navigationBarsPadding().height(12.dp))
+            }
         }
     }
 }

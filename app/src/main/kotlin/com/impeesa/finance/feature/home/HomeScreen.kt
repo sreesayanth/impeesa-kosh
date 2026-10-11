@@ -1,6 +1,7 @@
 package com.impeesa.finance.feature.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,35 +26,44 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.impeesa.finance.LocalAppContainer
 import com.impeesa.finance.R
+import com.impeesa.finance.core.model.Account
+import com.impeesa.finance.core.model.AccountType
 import com.impeesa.finance.core.ui.component.AmountText
 import com.impeesa.finance.core.ui.component.EmptyState
+import com.impeesa.finance.core.ui.component.SurfaceCard
 import com.impeesa.finance.core.ui.component.TxnRow
 import com.impeesa.finance.core.ui.theme.ImpeesaTheme
 
 @Composable
-fun HomeScreen(onAddTransaction: () -> Unit) {
+fun HomeScreen(
+    onAddTransaction: () -> Unit,
+    onOpenTransaction: (Long) -> Unit,
+    onSeeAll: () -> Unit,
+    onAccounts: () -> Unit,
+) {
     val container = LocalAppContainer.current
-    val viewModel = viewModel { HomeViewModel(container.transactionRepository, container.clock) }
+    val viewModel = viewModel { HomeViewModel(container.transactionRepository, container.accountRepository, container.clock) }
     val state by viewModel.state.collectAsStateWithLifecycle()
-    HomeContent(state = state, onAddTransaction = onAddTransaction)
-}
+    val colors = ImpeesaTheme.colors
 
-@Composable
-private fun HomeContent(state: HomeUiState, onAddTransaction: () -> Unit) {
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(ImpeesaTheme.colors.ink)
-            .statusBarsPadding(),
+        modifier = Modifier.fillMaxSize().background(colors.ink).statusBarsPadding(),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         item(key = "header") { Header(state.greeting) }
+        if (state.loading) return@LazyColumn
+
+        item(key = "hero") { SpentCard(state) }
+        if (state.accounts.isNotEmpty()) {
+            item(key = "accounts") { AccountStrip(state.accounts, onAccounts) }
+        }
         if (state.isEmpty) {
             item(key = "empty") {
                 EmptyState(
@@ -61,18 +73,29 @@ private fun HomeContent(state: HomeUiState, onAddTransaction: () -> Unit) {
                     onAction = onAddTransaction,
                 )
             }
-        } else if (!state.loading) {
-            item(key = "hero") { SpentCard(state) }
-            item(key = "recentTitle") {
-                Text(stringResource(R.string.home_recent), style = ImpeesaTheme.type.title, color = ImpeesaTheme.colors.textPrimary)
-            }
-            items(state.recent, key = { it.id }) { row ->
-                TxnRow(
-                    title = row.title,
-                    subtitle = row.subtitle,
-                    amount = row.amount,
-                    tileColor = row.color?.let { Color(it) } ?: ImpeesaTheme.colors.other,
-                )
+        } else {
+            item(key = "recent") {
+                SurfaceCard(padding = 18.dp) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.home_recent), style = ImpeesaTheme.type.title, color = colors.textPrimary, modifier = Modifier.weight(1f))
+                        Text(
+                            "See all",
+                            style = ImpeesaTheme.type.label,
+                            color = colors.lime,
+                            modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClick = onSeeAll).padding(8.dp),
+                        )
+                    }
+                    state.recent.forEach { txn ->
+                        TxnRow(
+                            title = txn.title,
+                            subtitle = txn.subtitle,
+                            amount = txn.amount,
+                            tileColor = txn.color?.let { Color(it) } ?: colors.other,
+                            neutral = txn.isTransfer,
+                            onClick = { onOpenTransaction(txn.id) },
+                        )
+                    }
+                }
             }
         }
     }
@@ -87,11 +110,8 @@ private fun Header(greeting: Greeting) {
         Greeting.EVENING -> R.string.greeting_evening
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Box(
-            Modifier.size(44.dp).clip(CircleShape).background(colors.raised),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text("I", style = ImpeesaTheme.type.title, color = colors.lime)
+        Box(Modifier.size(44.dp).clip(CircleShape).background(colors.raised), contentAlignment = Alignment.Center) {
+            Text("IK", style = ImpeesaTheme.type.label, color = colors.lime)
         }
         Column {
             Text(stringResource(text), style = ImpeesaTheme.type.caption, color = colors.textSecondary)
@@ -116,6 +136,54 @@ private fun SpentCard(state: HomeUiState) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.home_income), style = ImpeesaTheme.type.label, color = colors.onLime.copy(alpha = 0.75f))
             AmountText(money = state.income, style = ImpeesaTheme.type.label, color = colors.onLime)
+            Text("·", style = ImpeesaTheme.type.label, color = colors.onLime.copy(alpha = 0.75f))
+            Text("Saved", style = ImpeesaTheme.type.label, color = colors.onLime.copy(alpha = 0.75f))
+            AmountText(money = state.income - state.spent, style = ImpeesaTheme.type.label, color = colors.onLime)
+        }
+    }
+}
+
+@Composable
+private fun AccountStrip(accounts: List<Account>, onAccounts: () -> Unit) {
+    val colors = ImpeesaTheme.colors
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Accounts", style = ImpeesaTheme.type.title, color = colors.textPrimary, modifier = Modifier.weight(1f))
+            Text(
+                "Manage",
+                style = ImpeesaTheme.type.label,
+                color = colors.lime,
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClick = onAccounts).padding(8.dp),
+            )
+        }
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(accounts, key = { it.id }) { account ->
+                Column(
+                    Modifier
+                        .width(140.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(colors.card)
+                        .clickable(role = Role.Button, onClick = onAccounts)
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(Modifier.size(28.dp).clip(RoundedCornerShape(9.dp)).background(Color(account.color)), contentAlignment = Alignment.Center) {
+                        Text(if (account.type == AccountType.CASH) "₹" else account.name.take(1).uppercase(), style = ImpeesaTheme.type.caption, color = Color.White)
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            if (account.type == AccountType.CARD) "${account.name} owed" else account.name,
+                            style = ImpeesaTheme.type.caption,
+                            color = colors.textSecondary,
+                            maxLines = 1,
+                        )
+                        AmountText(
+                            money = if (account.type == AccountType.CARD) account.owed else account.balance,
+                            style = ImpeesaTheme.type.amount.copy(fontSize = ImpeesaTheme.type.title.fontSize),
+                        )
+                    }
+                }
+            }
         }
     }
 }

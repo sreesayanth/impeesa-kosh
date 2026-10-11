@@ -100,6 +100,7 @@ fun TxnRow(
     amount: Money,
     tileColor: Color,
     modifier: Modifier = Modifier,
+    neutral: Boolean = false,
     onClick: (() -> Unit)? = null,
 ) {
     val colors = ImpeesaTheme.colors
@@ -119,9 +120,13 @@ fun TxnRow(
             Text(subtitle, style = ImpeesaTheme.type.caption, color = colors.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         AmountText(
-            money = amount,
-            signed = true,
-            color = if (amount.paise > 0) colors.lime else colors.textPrimary,
+            money = if (neutral) amount.abs() else amount,
+            signed = !neutral,
+            color = when {
+                neutral -> colors.textSecondary
+                amount.paise > 0 -> colors.lime
+                else -> colors.textPrimary
+            },
         )
     }
 }

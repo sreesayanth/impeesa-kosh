@@ -8,7 +8,7 @@ import com.impeesa.finance.core.data.security.DatabaseKeyManager
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 @Database(
-    entities = [AccountEntity::class, CategoryEntity::class, TransactionEntity::class],
+    entities = [AccountEntity::class, CategoryEntity::class, TransactionEntity::class, TransactionFts::class],
     version = 1,
     exportSchema = true,
 )

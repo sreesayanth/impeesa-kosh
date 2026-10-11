@@ -3,6 +3,7 @@ package com.impeesa.finance
 import android.content.Context
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.impeesa.finance.core.data.DataGraph
+import com.impeesa.finance.ui.UndoBus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -17,11 +18,15 @@ class AppContainer(context: Context) {
 
     val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     val clock: Clock = Clock.systemDefaultZone()
+    val undo = UndoBus()
 
-    private val data = DataGraph(appContext)
+    private val data = DataGraph(appContext, clock)
 
     val categoryRepository get() = data.categoryRepository
+    val accountRepository get() = data.accountRepository
     val transactionRepository get() = data.transactionRepository
+
+    suspend fun seed() = data.seed()
 }
 
 val LocalAppContainer = staticCompositionLocalOf<AppContainer> {

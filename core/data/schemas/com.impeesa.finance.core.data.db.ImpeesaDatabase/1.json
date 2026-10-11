@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "0b08586dac0338c2a8338c933810aa2d",
+    "identityHash": "db7f07e84f48ddf1b29ba915ddcfe6c0",
     "entities": [
       {
         "tableName": "accounts",
@@ -408,12 +408,53 @@
           }
         ],
         "foreignKeys": []
+      },
+      {
+        "ftsVersion": "FTS4",
+        "ftsOptions": {
+          "tokenizer": "simple",
+          "tokenizerArgs": [],
+          "contentTable": "transactions",
+          "languageIdColumnName": "",
+          "matchInfo": "FTS4",
+          "notIndexedColumns": [],
+          "prefixSizes": [],
+          "preferredOrder": "ASC"
+        },
+        "contentSyncTriggers": [
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_transactions_fts_BEFORE_UPDATE BEFORE UPDATE ON `transactions` BEGIN DELETE FROM `transactions_fts` WHERE `docid`=OLD.`rowid`; END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_transactions_fts_BEFORE_DELETE BEFORE DELETE ON `transactions` BEGIN DELETE FROM `transactions_fts` WHERE `docid`=OLD.`rowid`; END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_transactions_fts_AFTER_UPDATE AFTER UPDATE ON `transactions` BEGIN INSERT INTO `transactions_fts`(`docid`, `counterparty`, `note`) VALUES (NEW.`rowid`, NEW.`counterparty`, NEW.`note`); END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_transactions_fts_AFTER_INSERT AFTER INSERT ON `transactions` BEGIN INSERT INTO `transactions_fts`(`docid`, `counterparty`, `note`) VALUES (NEW.`rowid`, NEW.`counterparty`, NEW.`note`); END"
+        ],
+        "tableName": "transactions_fts",
+        "createSql": "CREATE VIRTUAL TABLE IF NOT EXISTS `${TABLE_NAME}` USING FTS4(`counterparty` TEXT, `note` TEXT, content=`transactions`)",
+        "fields": [
+          {
+            "fieldPath": "counterparty",
+            "columnName": "counterparty",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": []
+        },
+        "indices": [],
+        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0b08586dac0338c2a8338c933810aa2d')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'db7f07e84f48ddf1b29ba915ddcfe6c0')"
     ]
   }
 }

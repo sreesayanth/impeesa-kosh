@@ -3,26 +3,25 @@ package com.impeesa.finance.feature.home
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.impeesa.finance.core.data.AccountRepository
 import com.impeesa.finance.core.data.TransactionRepository
-import com.impeesa.finance.core.data.db.TransactionListItem
+import com.impeesa.finance.core.model.Account
 import com.impeesa.finance.core.model.DateKey
 import com.impeesa.finance.core.model.Money
+import com.impeesa.finance.ui.TxnUi
+import com.impeesa.finance.ui.toUi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import java.time.Clock
-import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
 enum class Greeting { MORNING, AFTERNOON, EVENING }
-
-@Immutable
-data class RecentRow(val id: Long, val title: String, val subtitle: String, val amount: Money, val color: Int?)
 
 @Immutable
 data class HomeUiState(
@@ -31,31 +30,38 @@ data class HomeUiState(
     val monthName: String = "",
     val spent: Money = Money.ZERO,
     val income: Money = Money.ZERO,
-    val recent: List<RecentRow> = emptyList(),
+    val accounts: List<Account> = emptyList(),
+    val recent: List<TxnUi> = emptyList(),
+    val transactionCount: Int = 0,
 ) {
-    val isEmpty: Boolean get() = !loading && recent.isEmpty()
+    val isEmpty: Boolean get() = !loading && transactionCount == 0
 }
 
 class HomeViewModel(
-    repository: TransactionRepository,
+    transactions: TransactionRepository,
+    accounts: AccountRepository,
     private val clock: Clock,
 ) : ViewModel() {
 
     private val month = YearMonth.now(clock)
-    private val timeFormat = DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH)
+    private val today = LocalDate.now(clock)
 
     val state: StateFlow<HomeUiState> =
         combine(
-            repository.observeSummary(DateKey.monthRange(month)),
-            repository.observeRecent(limit = 5),
-        ) { summary, recent ->
+            transactions.observeSummary(DateKey.monthRange(month)),
+            transactions.observeRecent(limit = 5),
+            accounts.observeAccounts(),
+            transactions.observeCount(),
+        ) { summary, recent, accountList, count ->
             HomeUiState(
                 loading = false,
                 greeting = greetingNow(),
                 monthName = month.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH),
                 spent = summary.spent,
                 income = summary.income,
-                recent = recent.map(::toRow),
+                accounts = accountList,
+                recent = recent.map { it.toUi(clock.zone, today) },
+                transactionCount = count,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(greeting = greetingNow()))
 
@@ -63,22 +69,5 @@ class HomeViewModel(
         in 5..11 -> Greeting.MORNING
         in 12..16 -> Greeting.AFTERNOON
         else -> Greeting.EVENING
-    }
-
-    private fun toRow(item: TransactionListItem): RecentRow {
-        val time = LocalDateTime.ofInstant(Instant.ofEpochMilli(item.occurredAt), clock.zone)
-        val signed = if (item.direction == "DEBIT") -item.amountPaise else item.amountPaise
-        val source = when (item.source) {
-            "SMS" -> "SMS"
-            "NOTIFICATION" -> "Notification"
-            else -> "Added by you"
-        }
-        return RecentRow(
-            id = item.id,
-            title = item.counterparty ?: item.note ?: "Transaction",
-            subtitle = listOfNotNull(item.categoryName, source, time.format(timeFormat)).joinToString(" · "),
-            amount = Money(signed),
-            color = item.categoryColor,
-        )
     }
 }

@@ -10,6 +10,6 @@ class ImpeesaApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
-        container.ioScope.launch { container.categoryRepository.ensureSeeded() }
+        container.ioScope.launch { container.seed() }
     }
 }
