@@ -37,5 +37,11 @@ Requires JDK 17 and the Android SDK (platform 35, build-tools 35).
 
 - [x] Phase 0 — project setup, design system, encrypted database, navigation shell
 - [x] Phase 1 — manual tracking: accounts (bank, card, wallet, cash), add/edit/delete with undo, transfers, Activity with search, filters and day totals, transaction detail, Home
-- [~] Phase 2 — engine started: sender classification, message types (OTP, collect request, promo, failed, statement, upcoming, refund, transaction, balance), amounts, account masks
+- [x] Phase 2 — detection engine (pure Kotlin): sender gatekeeping, message types, amount/balance/limit selection, account mask, counterparty, date, reference, channel, 18 bank/app templates, merchant dictionary (~130 merchants), confidence scoring and routing, account matching; golden corpus with accuracy gates
 - [ ] Phase 3 — SMS capture, history import, review queue
+
+## Engine accuracy
+
+`./gradlew :core:engine:evaluate` prints the corpus report. The build fails if auto-log precision drops below 99.5 %, recall below 95 %, any amount is wrong, or anything that must be ignored (OTP, promo, collect request, failed payment) gets captured.
+
+The corpus is synthetic, written from known Indian bank formats, so its 100 % score measures consistency, not real-world accuracy. Two batches the engine had never seen scored, before fixes: precision 100 % / 91.7 %, recall 90 % / 100 %, merchant naming 62.5 % / 50 %. Both are now part of the corpus. Real messages, anonymised with `./gradlew :core:engine:anonymize -Pin=raw.tsv -Pout=new.jsonl`, should go into `core/engine/src/test/resources/corpus-holdout/` next.

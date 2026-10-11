@@ -1,0 +1,10 @@
+[
+  {"packageName": "com.google.android.apps.nbu.paisa.user", "app": "Google Pay", "kind": "UPI"},
+  {"packageName": "com.phonepe.app", "app": "PhonePe", "kind": "UPI"},
+  {"packageName": "net.one97.paytm", "app": "Paytm", "kind": "WALLET"},
+  {"packageName": "in.org.npci.upiapp", "app": "BHIM", "kind": "UPI"},
+  {"packageName": "com.dreamplug.androidapp", "app": "CRED", "kind": "CARD_PAYMENTS"},
+  {"packageName": "in.amazon.mShop.android.shopping", "app": "Amazon", "kind": "SHOPPING"},
+  {"packageName": "com.google.android.apps.messaging", "app": "Messages", "kind": "MESSAGING"},
+  {"packageName": "com.samsung.android.messaging", "app": "Samsung Messages", "kind": "MESSAGING"}
+]

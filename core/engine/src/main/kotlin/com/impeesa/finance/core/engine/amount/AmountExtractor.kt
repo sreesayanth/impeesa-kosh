@@ -10,7 +10,7 @@ data class AmountCandidate(
 
 object AmountExtractor {
     private val pattern = Regex(
-        "(?<![A-Za-z])(rs\\.?|inr|₹|usd|eur|gbp|aed|sgd)\\s*([0-9][0-9,]*(?:\\.[0-9]{1,2})?)",
+        "(?<![A-Za-z])(rs\\.?|inr|₹|usd|eur|gbp|aed|sgd)\\s*[:.]?\\s*([0-9][0-9,]*(?:\\.[0-9]{1,2})?)",
         RegexOption.IGNORE_CASE,
     )
 

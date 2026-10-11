@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "id": "hdfc_upi_debit",
+      "senders": ["HDFCBK", "HDFCBN"],
+      "direction": "DEBIT",
+      "channel": "UPI",
+      "pattern": "Rs\\.?\\s?(?<amount>[\\d,]+(?:\\.\\d{1,2})?) debited from a/c (?:XX|\\*)(?<mask>\\d{3,6}) to VPA (?<merchant>[\\w.\\-]+@[\\w]+) on (?<date>\\d{2}-\\d{2}-\\d{2,4})\\.? UPI Ref (?:No\\.? )?(?<ref>\\d{9,16})"
+    },
+    {
+      "id": "hdfc_upi_sent",
+      "senders": ["HDFCBK", "HDFCBN"],
+      "direction": "DEBIT",
+      "channel": "UPI",
+      "pattern": "Sent Rs\\.?\\s?(?<amount>[\\d,]+(?:\\.\\d{1,2})?) From HDFC Bank A/C (?:x+|\\*)?(?<mask>\\d{3,6}) To (?<merchant>.+?) On (?<date>\\d{2}/\\d{2}/\\d{2,4}) Ref (?<ref>\\d{9,16})"
+    },
+    {
+      "id": "hdfc_credit_alert",
+      "senders": ["HDFCBK", "HDFCBN"],
+      "direction": "CREDIT",
+      "channel": "UPI",
+      "pattern": "Rs\\.?\\s?(?<amount>[\\d,]+(?:\\.\\d{1,2})?) credited to HDFC Bank A/c (?:XX|\\*)(?<mask>\\d{3,6}) on (?<date>\\d{2}-\\d{2}-\\d{2,4}) from VPA (?<merchant>[\\w.\\-]+@[\\w]+) \\(UPI (?<ref>\\d{9,16})\\)"
+    },
+    {
+      "id": "hdfc_card_spend",
+      "senders": ["HDFCBK", "HDFCBN"],
+      "direction": "DEBIT",
+      "channel": "CARD",
+      "pattern": "(?:Spent|Txn) Rs\\.?\\s?(?<amount>[\\d,]+(?:\\.\\d{1,2})?) On HDFC Bank Card (?:x+)?(?<mask>\\d{4}) At (?<merchant>.+?) On (?<date>[\\d\\-/]+)"
+    },
+    {
+      "id": "hdfc_atm",
+      "senders": ["HDFCBK", "HDFCBN"],
+      "direction": "DEBIT",
+      "channel": "ATM",
+      "pattern": "Rs\\.?\\s?(?<amount>[\\d,]+(?:\\.\\d{1,2})?) withdrawn from A/c (?:XX|\\*)(?<mask>\\d{3,6}) at ATM \\S+ on (?<date>\\d{2}-\\d{2}-\\d{2,4})\\.?(?: Avl Bal Rs\\.?\\s?(?<balance>[\\d,]+(?:\\.\\d{1,2})?))?"
+    },
+    {
+      "id": "icici_card_spend",
+      "senders": ["ICICIT", "ICICIB"],
+      "direction": "DEBIT",
+      "channel": "CARD",
+      "pattern": "INR (?<amount>[\\d,]+(?:\\.\\d{1,2})?) spent on ICICI Bank Card (?:XX)?(?<mask>\\d{4}) on (?<date>\\d{2}-[A-Za-z]{3}-\\d{2,4}) at (?<merchant>.+?)\\. Avl Lmt: INR (?<limit>[\\d,]+(?:\\.\\d{1,2})?)"
+    },
+    {
+      "id": "icici_acct_debit",
+      "senders": ["ICICIT", "ICICIB"],
+      "direction": "DEBIT",
+      "channel": "UPI",
+      "pattern": "ICICI Bank Acc(?:oun)?t XX(?<mask>\\d{3,6}) debited (?:for|with) (?:Rs|INR) (?<amount>[\\d,]+(?:\\.\\d{1,2})?) on (?<date>\\d{2}-[A-Za-z]{3}-\\d{2,4}); (?<merchant>.+?) credited\\. UPI:(?<ref>\\d{9,16})"
+    },
+    {
+      "id": "icici_acct_credit",
+      "senders": ["ICICIT", "ICICIB"],
+      "direction": "CREDIT",
+      "channel": "UPI",
+      "pattern": "Acc(?:oun)?t XX(?<mask>\\d{3,6}) is credited with (?:Rs|INR) (?<amount>[\\d,]+(?:\\.\\d{1,2})?) on (?<date>\\d{2}-[A-Za-z]{3}-\\d{2,4}) from (?<merchant>.+?)\\. UPI:(?<ref>\\d{9,16})"
+    },
+    {
+      "id": "sbi_upi_debit",
+      "senders": ["SBIUPI", "SBIINB", "SBIPSG"],
+      "direction": "DEBIT",
+      "channel": "UPI",
+      "pattern": "A/C X(?<mask>\\d{3,6}) debited by (?<amount>[\\d,]+(?:\\.\\d{1,2})?) on date (?<date>\\d{2}[A-Za-z]{3}\\d{2}) trf to (?<merchant>.+?) Refno (?<ref>\\d{9,16})"
+    },
+    {
+      "id": "sbi_upi_credit",
+      "senders": ["SBIUPI", "SBIINB", "SBIPSG"],
+      "direction": "CREDIT",
+      "channel": "UPI",
+      "pattern": "A/c ?X(?<mask>\\d{3,6}) credited by Rs\\.?\\s?(?<amount>[\\d,]+(?:\\.\\d{1,2})?) on (?<date>\\d{2}[A-Za-z]{3}\\d{2}) by .*?\\(Ref no (?<ref>\\d{9,16})\\)"
+    },
+    {
+      "id": "sbicard_spend",
+      "senders": ["SBICRD"],
+      "direction": "DEBIT",
+      "channel": "CARD",
+      "pattern": "Rs\\.?\\s?(?<amount>[\\d,]+(?:\\.\\d{1,2})?) spent on your SBI Credit Card ending (?<mask>\\d{4}) at (?<merchant>.+?) on (?<date>\\d{2}/\\d{2}/\\d{2,4})"
+    },
+    {
+      "id": "axis_upi_debit",
+      "senders": ["AXISBK", "AXISBN"],
+      "direction": "DEBIT",
+      "channel": "UPI",
+      "pattern": "INR (?<amount>[\\d,]+(?:\\.\\d{1,2})?) debited A/c no\\. XX(?<mask>\\d{3,6}) (?<date>\\d{2}-\\d{2}-\\d{2,4}),? [\\d:]+ UPI/P2[AM]/(?<ref>\\d{9,16})/(?<merchant>[^/]+?)(?: Not you| Axis Bank|$)"
+    },
+    {
+      "id": "axis_upi_credit",
+      "senders": ["AXISBK", "AXISBN"],
+      "direction": "CREDIT",
+      "channel": "UPI",
+      "pattern": "INR (?<amount>[\\d,]+(?:\\.\\d{1,2})?) credited A/c no\\. XX(?<mask>\\d{3,6}) (?<date>\\d{2}-\\d{2}-\\d{2,4}),? [\\d:]+ UPI/P2[AM]/(?<ref>\\d{9,16})/(?<merchant>[^/]+?)(?: Not you| Axis Bank|$)"
+    },
+    {
+      "id": "axis_card_spend",
+      "senders": ["AXISBK", "AXISBN"],
+      "direction": "DEBIT",
+      "channel": "CARD",
+      "pattern": "Spent INR (?<amount>[\\d,]+(?:\\.\\d{1,2})?) Axis Bank Card no\\. XX(?<mask>\\d{4}) (?<date>\\d{2}-\\d{2}-\\d{2,4}) [\\d:]+(?: IST)? (?<merchant>.+?) Avl Limit: INR (?<limit>[\\d,]+(?:\\.\\d{1,2})?)"
+    },
+    {
+      "id": "kotak_upi_sent",
+      "senders": ["KOTAKB"],
+      "direction": "DEBIT",
+      "channel": "UPI",
+      "pattern": "Sent Rs\\.?\\s?(?<amount>[\\d,]+(?:\\.\\d{1,2})?) from Kotak Bank AC X(?<mask>\\d{3,6}) to (?<merchant>[\\w.\\-]+@[\\w]+) on (?<date>\\d{2}-\\d{2}-\\d{2,4})\\.? ?UPI Ref:? ?(?<ref>\\d{9,16})"
+    },
+    {
+      "id": "kotak_upi_received",
+      "senders": ["KOTAKB"],
+      "direction": "CREDIT",
+      "channel": "UPI",
+      "pattern": "Received Rs\\.?\\s?(?<amount>[\\d,]+(?:\\.\\d{1,2})?) in your Kotak Bank AC X(?<mask>\\d{3,6}) from (?<merchant>[\\w.\\-]+@[\\w]+) on (?<date>\\d{2}-\\d{2}-\\d{2,4})\\.? ?UPI Ref:? ?(?<ref>\\d{9,16})"
+    },
+    {
+      "id": "phonepe_paid",
+      "senders": ["com.phonepe.app"],
+      "direction": "DEBIT",
+      "channel": "UPI",
+      "pattern": "^₹\\s?(?<amount>[\\d,]+(?:\\.\\d{1,2})?) paid to (?<merchant>.+?)(?: Debited from .+? - (?<mask>\\d{4}))?$"
+    },
+    {
+      "id": "gpay_paid",
+      "senders": ["com.google.android.apps.nbu.paisa.user"],
+      "direction": "DEBIT",
+      "channel": "UPI",
+      "pattern": "^Paid ₹\\s?(?<amount>[\\d,]+(?:\\.\\d{1,2})?) to (?<merchant>.+?)(?: UPI transaction ID:? (?<ref>\\d{9,16}))?$"
+    }
+  ]
+}
