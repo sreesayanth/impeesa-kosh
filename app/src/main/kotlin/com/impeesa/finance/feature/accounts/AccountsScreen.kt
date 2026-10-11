@@ -34,6 +34,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.impeesa.finance.LocalAppContainer
 import com.impeesa.finance.core.data.AccountRepository
+import com.impeesa.finance.core.data.AccountSuggestion
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
 import com.impeesa.finance.core.model.Account
 import com.impeesa.finance.core.model.AccountType
 import com.impeesa.finance.core.model.Money
@@ -56,10 +59,14 @@ data class AccountsUiState(
     val assets: Money = Money.ZERO,
     val dues: Money = Money.ZERO,
     val sections: List<Pair<String, List<Account>>> = emptyList(),
+    val suggestions: List<AccountSuggestion> = emptyList(),
 )
 
-class AccountsViewModel(repository: AccountRepository) : ViewModel() {
-    val state: StateFlow<AccountsUiState> = repository.observeAccounts().map { accounts ->
+class AccountsViewModel(private val repository: AccountRepository) : ViewModel() {
+    fun accept(id: Long) = viewModelScope.launch { repository.acceptSuggestion(id) }
+    fun dismiss(id: Long) = viewModelScope.launch { repository.dismissSuggestion(id) }
+
+    val state: StateFlow<AccountsUiState> = combine(repository.observeAccounts(), repository.observeSuggestions()) { accounts, suggestions ->
         val counted = accounts.filter { it.includeInNet }
         val assets = counted.filter { it.type != AccountType.CARD }.fold(Money.ZERO) { sum, a -> sum + a.balance }
         val dues = counted.filter { it.type == AccountType.CARD }.fold(Money.ZERO) { sum, a -> sum + a.owed }
@@ -74,6 +81,7 @@ class AccountsViewModel(repository: AccountRepository) : ViewModel() {
                 "Wallets" to accounts.filter { it.type == AccountType.WALLET },
                 "Cash" to accounts.filter { it.type == AccountType.CASH },
             ).filter { it.second.isNotEmpty() },
+            suggestions = suggestions,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountsUiState())
 }
@@ -103,12 +111,59 @@ fun AccountsScreen(onOpen: (Long) -> Unit, onAdd: () -> Unit) {
             }
         }
         item(key = "net") { NetCard(state) }
+        if (state.suggestions.isNotEmpty()) {
+            item(key = "suggestions") {
+                SuggestionsCard(state.suggestions, onAdd = viewModel::accept, onDismiss = viewModel::dismiss)
+            }
+        }
         state.sections.forEach { (title, accounts) ->
             item(key = "label-$title") { SectionLabel(title, Modifier.padding(start = 4.dp, top = 4.dp)) }
             item(key = "group-$title") {
                 SurfaceCard(padding = 4.dp) {
                     accounts.forEach { account -> AccountRowItem(account, onClick = { onOpen(account.id) }) }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SuggestionsCard(suggestions: List<AccountSuggestion>, onAdd: (Long) -> Unit, onDismiss: (Long) -> Unit) {
+    val colors = ImpeesaTheme.colors
+    SurfaceCard(padding = 16.dp) {
+        Text("Found in your messages", style = ImpeesaTheme.type.title, color = colors.textPrimary)
+        Text(
+            "These accounts sent you transaction alerts. Add them to track balances.",
+            style = ImpeesaTheme.type.caption,
+            color = colors.textSecondary,
+            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+        )
+        suggestions.forEach { suggestion ->
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("${suggestion.institution} ••${suggestion.mask}", style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
+                    Text(
+                        (if (suggestion.looksLikeCard) "Card" else "Account") + " · seen ${suggestion.sightings} " + if (suggestion.sightings == 1) "time" else "times",
+                        style = ImpeesaTheme.type.caption,
+                        color = colors.textTertiary,
+                    )
+                }
+                Text(
+                    "Dismiss",
+                    style = ImpeesaTheme.type.label,
+                    color = colors.textSecondary,
+                    modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(role = Role.Button) { onDismiss(suggestion.id) }.padding(10.dp),
+                )
+                Text(
+                    "Add",
+                    style = ImpeesaTheme.type.label,
+                    color = colors.onLime,
+                    modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(colors.lime).clickable(role = Role.Button) { onAdd(suggestion.id) }.padding(horizontal = 16.dp, vertical = 10.dp),
+                )
             }
         }
     }

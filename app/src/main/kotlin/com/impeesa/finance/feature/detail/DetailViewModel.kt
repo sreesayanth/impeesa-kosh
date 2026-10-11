@@ -11,8 +11,11 @@ import com.impeesa.finance.core.model.Money
 import com.impeesa.finance.core.model.TxnSource
 import com.impeesa.finance.ui.UndoBus
 import com.impeesa.finance.ui.UndoEvent
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -38,6 +41,8 @@ data class DetailUiState(
     val sourceLabel: String = "",
     val tileColor: Int? = null,
     val rows: List<DetailRow> = emptyList(),
+    val originalMessage: String? = null,
+    val pendingReview: Boolean = false,
 )
 
 class DetailViewModel(
@@ -53,11 +58,17 @@ class DetailViewModel(
     val close: Flow<Unit> = closeChannel.receiveAsFlow()
     private val formatter = DateTimeFormatter.ofPattern("EEE d MMM yyyy, h:mm a", Locale.ENGLISH)
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val original: Flow<String?> = transactions.observeDetail(id).flatMapLatest { detail ->
+        detail?.rawMessageId?.let(transactions::observeOriginalMessage) ?: flowOf(null)
+    }
+
     val state: StateFlow<DetailUiState> = combine(
         transactions.observeDetail(id),
         accounts.observeAccounts(),
         categories.observeAll(),
-    ) { detail, accountList, categoryList ->
+        original,
+    ) { detail, accountList, categoryList, message ->
         if (detail == null) return@combine DetailUiState(loading = false, missing = true)
         val category = categoryList.firstOrNull { it.id == detail.categoryId }
         val account = accountList.firstOrNull { it.id == detail.accountId }
@@ -69,7 +80,7 @@ class DetailViewModel(
                 category?.let { add(DetailRow("Type", it.name, it.color)) }
             } else {
                 add(DetailRow("Category", category?.name ?: "Uncategorised", category?.color))
-                add(DetailRow(if (detail.kind == EntryKind.INCOME) "Received in" else "Paid from", account?.displayName ?: "Archived account"))
+                add(DetailRow(if (detail.kind == EntryKind.INCOME) "Received in" else "Paid from", account?.displayName ?: if (detail.accountId == null) "Not added yet" else "Archived account"))
             }
             detail.reference?.let { add(DetailRow("Reference", it)) }
             detail.note?.let { add(DetailRow("Note", it)) }
@@ -92,6 +103,8 @@ class DetailViewModel(
             },
             tileColor = category?.color,
             rows = rows,
+            originalMessage = message,
+            pendingReview = detail.pendingReview,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DetailUiState())
 

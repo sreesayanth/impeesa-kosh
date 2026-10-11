@@ -41,6 +41,12 @@ interface AccountDao {
     @Query("UPDATE accounts SET archived = :archived, updated_at = :now WHERE id = :id")
     suspend fun setArchived(id: Long, archived: Boolean, now: Long)
 
+    @Query("SELECT * FROM accounts WHERE archived = 0")
+    suspend fun activeAccounts(): List<AccountEntity>
+
+    @Query("SELECT id FROM accounts WHERE type = 'CASH' AND archived = 0 ORDER BY id LIMIT 1")
+    suspend fun cashAccountId(): Long?
+
     @Query(
         """
         SELECT a.id, a.type, a.name, a.mask, a.color,
@@ -94,6 +100,24 @@ data class TransactionRow(
 )
 
 data class DayTotal(val date: Int, val total: Long)
+
+/** A transaction waiting for the user's decision, with the message it came from. */
+data class ReviewRow(
+    val id: Long,
+    val amountPaise: Long,
+    val currency: String,
+    val direction: Direction,
+    val type: TxnType,
+    val counterparty: String?,
+    val categoryId: Long?,
+    val occurredAt: Long,
+    val reviewReason: String?,
+    val accountName: String?,
+    val senderCode: String?,
+    val accountMask: String?,
+    val rawSender: String?,
+    val rawBody: String?,
+)
 
 private const val ROW_COLUMNS = """
     t.id, t.amount_paise AS amountPaise, t.direction, t.type, t.counterparty, t.note,
@@ -191,4 +215,51 @@ interface TransactionDao {
 
     @Query("SELECT COUNT(*) FROM transactions WHERE deleted_at IS NULL")
     fun observeCount(): Flow<Int>
+
+    @Query(
+        """
+        SELECT id FROM transactions
+        WHERE reference = :reference AND amount_paise = :amountPaise AND direction = :direction AND deleted_at IS NULL
+        LIMIT 1
+        """,
+    )
+    suspend fun findByReference(reference: String, amountPaise: Long, direction: String): Long?
+
+    @Query(
+        """
+        SELECT t.id, t.amount_paise AS amountPaise, t.currency, t.direction, t.type, t.counterparty,
+               t.category_id AS categoryId, t.occurred_at AS occurredAt, t.review_reason AS reviewReason,
+               a.name AS accountName, t.sender_code AS senderCode, t.account_mask AS accountMask,
+               r.sender AS rawSender, r.body AS rawBody
+        FROM transactions t
+        LEFT JOIN accounts a ON a.id = t.account_id
+        LEFT JOIN raw_messages r ON r.id = t.raw_message_id
+        WHERE t.status = 'PENDING_REVIEW' AND t.deleted_at IS NULL
+        ORDER BY t.occurred_at DESC, t.id DESC
+        """,
+    )
+    fun observeReviewQueue(): Flow<List<ReviewRow>>
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE status = 'PENDING_REVIEW' AND deleted_at IS NULL")
+    fun observeReviewCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE status = 'PENDING_REVIEW' AND deleted_at IS NULL")
+    suspend fun reviewCount(): Int
+
+    @Query("UPDATE transactions SET status = :status, review_reason = CASE WHEN :status = 'CONFIRMED' THEN NULL ELSE review_reason END, updated_at = :at WHERE id IN (:ids)")
+    suspend fun setStatus(ids: List<Long>, status: String, at: Long)
+
+    @Query("UPDATE transactions SET category_id = :categoryId, category_source = 'USER', updated_at = :at WHERE id = :id")
+    suspend fun setCategory(id: Long, categoryId: Long?, at: Long)
+
+    @Query("SELECT id FROM transactions WHERE status = 'PENDING_REVIEW' AND deleted_at IS NULL")
+    suspend fun reviewIds(): List<Long>
+
+    /** When an account is added, claim earlier captured rows that carry its sender and digits. */
+    @Query("UPDATE transactions SET account_id = :accountId WHERE account_id IS NULL AND sender_code = :sender AND account_mask = :mask")
+    suspend fun backfillAccount(accountId: Long, sender: String, mask: String): Int
+
+    /** Same, for an account added by hand: only the digits are known. */
+    @Query("UPDATE transactions SET account_id = :accountId WHERE account_id IS NULL AND account_mask = :mask")
+    suspend fun backfillByMask(accountId: Long, mask: String): Int
 }

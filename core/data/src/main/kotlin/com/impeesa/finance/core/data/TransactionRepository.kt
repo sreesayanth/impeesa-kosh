@@ -31,7 +31,8 @@ data class TransactionDraft(
     val editingId: Long? = null,
     val kind: EntryKind,
     val amount: Money,
-    val accountId: Long,
+    /** Null only for captured transactions whose account is not known yet. */
+    val accountId: Long?,
     val toAccountId: Long? = null,
     val categoryId: Long? = null,
     val occurredAt: LocalDateTime,
@@ -60,6 +61,9 @@ data class TransactionDetail(
     val source: TxnSource,
     val channel: Channel,
     val reference: String?,
+    /** The SMS or notification this came from, when it was captured. */
+    val rawMessageId: Long? = null,
+    val pendingReview: Boolean = false,
 )
 
 class TransactionRepository internal constructor(
@@ -112,7 +116,7 @@ class TransactionRepository internal constructor(
             editingId = detail.id,
             kind = detail.kind,
             amount = detail.amount,
-            accountId = detail.accountId ?: return null,
+            accountId = detail.accountId,
             toAccountId = detail.toAccountId,
             categoryId = detail.categoryId,
             occurredAt = LocalDateTime.ofInstant(detail.occurredAt, zone),
@@ -124,6 +128,7 @@ class TransactionRepository internal constructor(
     suspend fun save(draft: TransactionDraft): Long {
         require(draft.amount.paise > 0) { "Amount must be positive" }
         if (draft.kind == EntryKind.TRANSFER) {
+            requireNotNull(draft.accountId) { "Transfer needs a source account" }
             requireNotNull(draft.toAccountId) { "Transfer needs a destination" }
             require(draft.toAccountId != draft.accountId) { "Pick two different accounts" }
         }
@@ -137,7 +142,22 @@ class TransactionRepository internal constructor(
                 createdAt = existing.createdAt
                 val editedBits = if (existing.source == TxnSource.MANUAL) 0 else ALL_FIELDS_EDITED
                 if (existing.transferGroupId == null && draft.kind != EntryKind.TRANSFER) {
-                    dao.update(single(draft, source, createdAt, now).copy(id = existing.id, userEditedFields = editedBits))
+                    dao.update(
+                        single(draft, source, createdAt, now).copy(
+                            id = existing.id,
+                            userEditedFields = editedBits,
+                            // Keep what capture knew about the row.
+                            counterparty = existing.counterparty,
+                            currency = existing.currency,
+                            channel = existing.channel,
+                            reference = existing.reference,
+                            confidence = existing.confidence,
+                            rawMessageId = existing.rawMessageId,
+                            merchantKey = existing.merchantKey,
+                            senderCode = existing.senderCode,
+                            accountMask = existing.accountMask,
+                        ),
+                    )
                     return@withTransaction existing.id
                 }
                 val ids = existing.transferGroupId?.let { group -> dao.getGroup(group).map { it.id } } ?: listOf(existing.id)
@@ -180,7 +200,7 @@ class TransactionRepository internal constructor(
     private suspend fun insertTransfer(draft: TransactionDraft, source: TxnSource, createdAt: Long, now: Long): Long {
         val toAccountId = requireNotNull(draft.toAccountId)
         val accountDao = db.accountDao()
-        val from = accountDao.getById(draft.accountId)
+        val from = accountDao.getById(requireNotNull(draft.accountId))
         val to = accountDao.getById(toAccountId)
         val categoryName = when {
             to?.type == AccountType.CARD -> "Card payments"
@@ -242,8 +262,14 @@ class TransactionRepository internal constructor(
             source = entity.source,
             channel = entity.channel,
             reference = entity.reference,
+            rawMessageId = entity.rawMessageId,
+            pendingReview = entity.status == com.impeesa.finance.core.model.TxnStatus.PENDING_REVIEW,
         )
     }
+
+    /** Text of the original SMS/notification, while it is still kept (see retention). */
+    fun observeOriginalMessage(rawId: Long): Flow<String?> =
+        db.captureDao().observeRaw(rawId).map { raw -> raw?.body?.let { body -> listOfNotNull(raw.title, body).joinToString("\n") } }
 
     private companion object {
         /** Every editable field; auto-captured rows edited by the user are never re-processed. */

@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -48,7 +49,7 @@ import com.impeesa.finance.core.ui.component.SurfaceCard
 import com.impeesa.finance.core.ui.theme.ImpeesaTheme
 
 @Composable
-fun DetailScreen(id: Long, onBack: () -> Unit, onEdit: (Long) -> Unit) {
+fun DetailScreen(id: Long, onBack: () -> Unit, onEdit: (Long) -> Unit, onReview: () -> Unit) {
     val container = LocalAppContainer.current
     val viewModel = viewModel {
         DetailViewModel(id, container.transactionRepository, container.accountRepository, container.categoryRepository, container.undo, container.clock)
@@ -95,6 +96,21 @@ fun DetailScreen(id: Long, onBack: () -> Unit, onEdit: (Long) -> Unit) {
             }
         }
 
+        if (state.pendingReview) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(colors.amber.copy(alpha = 0.1f))
+                    .clickable(role = Role.Button, onClick = onReview)
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Waiting for your review — not counted yet", style = ImpeesaTheme.type.label, color = colors.amber, modifier = Modifier.weight(1f))
+                Text("Review", style = ImpeesaTheme.type.label, color = colors.lime)
+            }
+        }
+
         SurfaceCard(padding = 16.dp) {
             state.rows.forEachIndexed { index, row ->
                 if (index > 0) HorizontalDivider(color = colors.raised)
@@ -105,6 +121,18 @@ fun DetailScreen(id: Long, onBack: () -> Unit, onEdit: (Long) -> Unit) {
                     }
                     Text(row.value, style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
                 }
+            }
+        }
+
+        state.originalMessage?.let { message ->
+            SurfaceCard(padding = 16.dp) {
+                Text("Original message", style = ImpeesaTheme.type.label, color = colors.textPrimary)
+                Text(
+                    message,
+                    style = ImpeesaTheme.type.caption.copy(fontFamily = FontFamily.Monospace),
+                    color = colors.textSecondary,
+                    modifier = Modifier.padding(top = 10.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(colors.ink).padding(12.dp),
+                )
             }
         }
 

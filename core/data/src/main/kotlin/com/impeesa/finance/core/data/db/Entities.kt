@@ -55,6 +55,7 @@ data class CategoryEntity(
         Index("status"),
         Index("reference"),
         Index("amount_paise", "direction", "occurred_at"),
+        Index("sender_code", "account_mask"),
     ],
 )
 data class TransactionEntity(
@@ -82,6 +83,70 @@ data class TransactionEntity(
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
     @ColumnInfo(name = "deleted_at") val deletedAt: Long? = null,
+    @ColumnInfo(name = "review_reason") val reviewReason: String? = null,
+    @ColumnInfo(name = "raw_message_id") val rawMessageId: Long? = null,
+    @ColumnInfo(name = "merchant_key") val merchantKey: String? = null,
+    /** SMS sender entity (e.g. HDFCBK) and account digits, kept so a later account can claim the row. */
+    @ColumnInfo(name = "sender_code") val senderCode: String? = null,
+    @ColumnInfo(name = "account_mask") val accountMask: String? = null,
+)
+
+/** A financial message that produced a transaction or useful info. Non-financial messages are never stored. */
+@Entity(
+    tableName = "raw_messages",
+    indices = [Index(value = ["source_hash"], unique = true), Index("txn_id")],
+)
+data class RawMessageEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val source: String,
+    val sender: String,
+    val title: String?,
+    /** Cleared after the retention period; extracted fields stay on the transaction. */
+    val body: String?,
+    @ColumnInfo(name = "received_at") val receivedAt: Long,
+    @ColumnInfo(name = "source_hash") val sourceHash: String,
+    @ColumnInfo(name = "parser_version") val parserVersion: Int,
+    @ColumnInfo(name = "message_type") val messageType: String,
+    val route: String,
+    @ColumnInfo(name = "txn_id") val txnId: Long? = null,
+)
+
+/** Monthly counts of what capture did, including skipped messages (only the count is kept). */
+@Entity(tableName = "capture_stats", primaryKeys = ["month", "source", "outcome"])
+data class CaptureStatEntity(
+    val month: Int,
+    val source: String,
+    val outcome: String,
+    val count: Int,
+)
+
+/** An account seen in messages that the user has not added yet. */
+@Entity(
+    tableName = "account_suggestions",
+    indices = [Index(value = ["sender_code", "mask"], unique = true)],
+)
+data class AccountSuggestionEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "sender_code") val senderCode: String,
+    val mask: String,
+    val institution: String?,
+    @ColumnInfo(name = "looks_like_card") val looksLikeCard: Boolean,
+    val sightings: Int,
+    @ColumnInfo(name = "first_seen") val firstSeen: Long,
+    @ColumnInfo(name = "last_seen") val lastSeen: Long,
+    val dismissed: Boolean = false,
+)
+
+/** Links an account to the SMS sender and digits that identify it. */
+@Entity(
+    tableName = "account_identifiers",
+    indices = [Index(value = ["sender_code", "mask"], unique = true), Index("account_id")],
+)
+data class AccountIdentifierEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "account_id") val accountId: Long,
+    @ColumnInfo(name = "sender_code") val senderCode: String,
+    val mask: String?,
 )
 
 /** Full-text index over merchant and note; Room keeps it in sync with `transactions`. */

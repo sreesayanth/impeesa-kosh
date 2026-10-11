@@ -1,8 +1,10 @@
 package com.impeesa.finance.core.data
 
 import android.content.Context
+import com.impeesa.finance.core.data.capture.CaptureRepository
 import com.impeesa.finance.core.data.db.ImpeesaDatabase
 import com.impeesa.finance.core.data.security.DatabaseKeyManager
+import com.impeesa.finance.core.engine.DetectionEngine
 import java.time.Clock
 
 /**
@@ -17,8 +19,12 @@ class DataGraph(context: Context, clock: Clock) {
     }
 
     val categoryRepository: CategoryRepository by lazy { CategoryRepository(database.categoryDao()) }
-    val accountRepository: AccountRepository by lazy { AccountRepository(database.accountDao(), clock) }
+    val accountRepository: AccountRepository by lazy { AccountRepository(database.accountDao(), clock, database) }
     val transactionRepository: TransactionRepository by lazy { TransactionRepository(database, clock) }
+    val reviewRepository: ReviewRepository by lazy { ReviewRepository(database, clock) }
+    val captureRepository: CaptureRepository by lazy {
+        CaptureRepository(appContext, database, DetectionEngine::withBundledData, clock)
+    }
 
     /** First-run data: default categories and a cash wallet. */
     suspend fun seed() {

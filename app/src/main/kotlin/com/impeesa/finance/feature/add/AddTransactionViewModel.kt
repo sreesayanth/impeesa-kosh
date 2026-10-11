@@ -84,6 +84,8 @@ private data class Form(
     val note: String = "",
     val error: String? = null,
     val saving: Boolean = false,
+    /** Editing a captured transaction whose account isn't known: keep it unassigned until the user picks one. */
+    val keepAccountEmpty: Boolean = false,
 )
 
 class AddTransactionViewModel(
@@ -123,7 +125,8 @@ class AddTransactionViewModel(
             EntryKind.TRANSFER -> emptyList()
         }
         val usable = if (f.kind == EntryKind.INCOME) accountList.filter { it.type != AccountType.CARD } else accountList
-        val accountId = f.accountId?.takeIf { id -> usable.any { it.id == id } } ?: defaultAccount(f.kind, usable)
+        val accountId = f.accountId?.takeIf { id -> usable.any { it.id == id } }
+            ?: if (f.keepAccountEmpty && f.kind != EntryKind.TRANSFER) null else defaultAccount(f.kind, usable)
         val toAccountId = if (f.kind == EntryKind.TRANSFER) {
             f.toAccountId?.takeIf { id -> id != accountId && accountList.any { it.id == id } }
                 ?: accountList.firstOrNull { it.type == AccountType.CASH && it.id != accountId }?.id
@@ -160,6 +163,7 @@ class AddTransactionViewModel(
                         date = draft.occurredAt.toLocalDate(),
                         time = draft.occurredAt.toLocalTime(),
                         note = draft.note.orEmpty(),
+                        keepAccountEmpty = draft.accountId == null,
                     )
                 }
             }
@@ -207,7 +211,7 @@ class AddTransactionViewModel(
         val s = state.value
         val error = when {
             s.input.money.paise <= 0 -> "Enter an amount"
-            s.accountId == null -> "Add an account first"
+            s.accountId == null && (editId == null || s.kind == EntryKind.TRANSFER) -> "Add an account first"
             s.kind == EntryKind.TRANSFER && s.toAccountId == null -> "Pick where the money goes"
             else -> null
         }
@@ -226,7 +230,7 @@ class AddTransactionViewModel(
                         editingId = editId,
                         kind = s.kind,
                         amount = s.input.money,
-                        accountId = s.accountId!!,
+                        accountId = s.accountId,
                         toAccountId = s.toAccountId,
                         categoryId = s.categoryId.takeIf { s.kind != EntryKind.TRANSFER },
                         occurredAt = LocalDateTime.of(f.date, time),

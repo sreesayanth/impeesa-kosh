@@ -1,7 +1,14 @@
 package com.impeesa.finance.feature.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.impeesa.finance.capture.SmsPermission
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,11 +53,19 @@ fun HomeScreen(
     onOpenTransaction: (Long) -> Unit,
     onSeeAll: () -> Unit,
     onAccounts: () -> Unit,
+    onReview: () -> Unit,
+    onEnableSms: () -> Unit,
 ) {
     val container = LocalAppContainer.current
-    val viewModel = viewModel { HomeViewModel(container.transactionRepository, container.accountRepository, container.clock) }
+    val context = LocalContext.current
+    val viewModel = viewModel { HomeViewModel(container.transactionRepository, container.accountRepository, container.reviewRepository, container.clock) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = ImpeesaTheme.colors
+    var smsAllowed by remember { mutableStateOf(SmsPermission.granted(context)) }
+    LifecycleResumeEffect(Unit) {
+        smsAllowed = SmsPermission.granted(context)
+        onPauseOrDispose { }
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(colors.ink).statusBarsPadding(),
@@ -60,6 +75,28 @@ fun HomeScreen(
         item(key = "header") { Header(state.greeting) }
         if (state.loading) return@LazyColumn
 
+        if (!smsAllowed) {
+            item(key = "manual") {
+                Banner(
+                    title = "Automatic tracking is off",
+                    body = "Allow SMS access and Impeesa will log bank spends for you.",
+                    action = "Turn on",
+                    tint = colors.coral,
+                    onClick = onEnableSms,
+                )
+            }
+        }
+        if (state.reviewCount > 0) {
+            item(key = "review") {
+                Banner(
+                    title = if (state.reviewCount == 1) "1 new transaction found" else "${state.reviewCount} new transactions found",
+                    body = "From your messages · tap to review",
+                    action = null,
+                    tint = colors.lime,
+                    onClick = onReview,
+                )
+            }
+        }
         item(key = "hero") { SpentCard(state) }
         if (state.accounts.isNotEmpty()) {
             item(key = "accounts") { AccountStrip(state.accounts, onAccounts) }
@@ -98,6 +135,29 @@ fun HomeScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun Banner(title: String, body: String, action: String?, tint: Color, onClick: () -> Unit) {
+    val colors = ImpeesaTheme.colors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(tint.copy(alpha = 0.08f))
+            .border(1.dp, tint.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(Modifier.size(10.dp).clip(CircleShape).background(tint))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(title, style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
+            Text(body, style = ImpeesaTheme.type.caption, color = colors.textSecondary)
+        }
+        if (action != null) Text(action, style = ImpeesaTheme.type.label, color = colors.lime)
     }
 }
 

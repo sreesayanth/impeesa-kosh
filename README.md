@@ -4,9 +4,11 @@ Private personal-finance app for Android. Impeesa Kosh turns bank SMS and paymen
 
 ## Try it
 
-Download [`release/impeesa-kosh-0.2.0.apk`](release/impeesa-kosh-0.2.0.apk) on an Android 8.0+ phone (ARM) and install it (allow "install unknown apps" for your browser or file manager).
+Download [`release/impeesa-kosh-0.3.0.apk`](release/impeesa-kosh-0.3.0.apk) on an Android 8.0+ phone (ARM) and install it (allow "install unknown apps" for your browser or file manager).
 
-Version 0.2.0 (Phase 1) is a working manual money tracker: add expenses, income and transfers (including ATM → cash), manage bank accounts, credit cards, wallets and cash, search and filter your activity, edit or delete with undo. SMS capture arrives in Phase 3. It is signed with a development key, so a future build signed with the real release key will need an uninstall first.
+Version 0.3.0 (Phase 3) reads your bank and card SMS: onboarding explains what is read, you allow SMS access, it imports the last 3/6/12 months, logs new spends as they arrive, catches up on anything missed while the app was closed, and puts uncertain items in a Review queue. Manual tracking from 0.2.0 still works, and 0.2.0 data is migrated. It is signed with a development key, so a future build signed with the real release key will need an uninstall first.
+
+Sideloading note: on Android 13+ the system may block SMS access for apps installed outside an app store until you allow "restricted settings" in the app's system info page.
 
 - Plan: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)
 - Design: https://claude.ai/artifact/7aztxLeB9VhLhyR1jpAfZ6
@@ -38,7 +40,8 @@ Requires JDK 17 and the Android SDK (platform 35, build-tools 35).
 - [x] Phase 0 — project setup, design system, encrypted database, navigation shell
 - [x] Phase 1 — manual tracking: accounts (bank, card, wallet, cash), add/edit/delete with undo, transfers, Activity with search, filters and day totals, transaction detail, Home
 - [x] Phase 2 — detection engine (pure Kotlin): sender gatekeeping, message types, amount/balance/limit selection, account mask, counterparty, date, reference, channel, 18 bank/app templates, merchant dictionary (~130 merchants), confidence scoring and routing, account matching; golden corpus with accuracy gates
-- [ ] Phase 3 — SMS capture, history import, review queue
+- [x] Phase 3 — SMS capture: onboarding with prominent disclosure, live receiver, history import with progress, daily and on-launch catch-up, single-writer ingestion with de-duplication, ATM → cash, review queue with undo, account suggestions, "Logged" and review notifications, database v2 with migration
+- [ ] Phase 4 — payment-app notifications, cross-source duplicates, transfer and refund linking
 
 ## Engine accuracy
 

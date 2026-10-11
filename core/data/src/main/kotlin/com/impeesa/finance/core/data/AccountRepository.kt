@@ -1,8 +1,13 @@
 package com.impeesa.finance.core.data
 
+import androidx.room.withTransaction
 import com.impeesa.finance.core.data.db.AccountBalanceRow
 import com.impeesa.finance.core.data.db.AccountDao
 import com.impeesa.finance.core.data.db.AccountEntity
+import com.impeesa.finance.core.data.db.AccountIdentifierEntity
+import com.impeesa.finance.core.data.db.ImpeesaDatabase
+import com.impeesa.finance.core.engine.registry.InstitutionKind
+import com.impeesa.finance.core.engine.registry.SenderRegistry
 import com.impeesa.finance.core.model.Account
 import com.impeesa.finance.core.model.AccountType
 import com.impeesa.finance.core.model.Money
@@ -22,10 +27,72 @@ data class AccountDraft(
     val includeInNet: Boolean = true,
 )
 
+/** An account seen in messages, offered to the user before it is added. */
+data class AccountSuggestion(
+    val id: Long,
+    val institution: String,
+    val mask: String,
+    val looksLikeCard: Boolean,
+    val sightings: Int,
+)
+
 class AccountRepository internal constructor(
     private val dao: AccountDao,
     private val clock: Clock,
+    private val db: ImpeesaDatabase? = null,
 ) {
+    private val senders by lazy { SenderRegistry.load() }
+
+    fun observeSuggestions(): Flow<List<AccountSuggestion>> =
+        requireNotNull(db).captureDao().observeSuggestions().map { rows ->
+            rows.map {
+                val institution = senders.find(it.senderCode)
+                AccountSuggestion(
+                    id = it.id,
+                    institution = institution?.institution ?: it.senderCode,
+                    mask = it.mask,
+                    looksLikeCard = it.looksLikeCard || institution?.kind == InstitutionKind.CARD,
+                    sightings = it.sightings,
+                )
+            }
+        }
+
+    /** Adds a suggested account, links its SMS identity and claims the transactions already captured for it. */
+    suspend fun acceptSuggestion(id: Long): Long? {
+        val database = requireNotNull(db)
+        val capture = database.captureDao()
+        return database.withTransaction {
+            val suggestion = capture.suggestionById(id) ?: return@withTransaction null
+            val institution = senders.find(suggestion.senderCode)
+            val isCard = suggestion.looksLikeCard || institution?.kind == InstitutionKind.CARD
+            val now = clock.millis()
+            val accountId = dao.insert(
+                AccountEntity(
+                    type = if (isCard) AccountType.CARD else AccountType.BANK,
+                    institution = institution?.institution,
+                    name = institution?.institution ?: suggestion.senderCode,
+                    mask = suggestion.mask,
+                    color = colorFor(suggestion.senderCode),
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            )
+            capture.insertIdentifier(AccountIdentifierEntity(accountId = accountId, senderCode = suggestion.senderCode, mask = suggestion.mask))
+            database.transactionDao().backfillAccount(accountId, suggestion.senderCode, suggestion.mask)
+            capture.deleteSuggestion(id)
+            accountId
+        }
+    }
+
+    suspend fun dismissSuggestion(id: Long) {
+        val capture = requireNotNull(db).captureDao()
+        capture.suggestionById(id)?.let { capture.updateSuggestion(it.copy(dismissed = true)) }
+    }
+
+    private fun colorFor(sender: String): Int {
+        val palette = listOf(0xFF2C5BD6, 0xFF1673B5, 0xFFB4462B, 0xFF8E2453, 0xFFC2283A, 0xFF5F259F)
+        return palette[Math.floorMod(sender.hashCode(), palette.size)].toInt()
+    }
     fun observeAccounts(): Flow<List<Account>> =
         dao.observeActiveWithBalance().map { rows -> rows.map { it.toModel() } }
 
@@ -82,7 +149,7 @@ class AccountRepository internal constructor(
             )
             existing.id
         } else {
-            dao.insert(
+            val newId = dao.insert(
                 AccountEntity(
                     type = draft.type,
                     institution = null,
@@ -96,6 +163,8 @@ class AccountRepository internal constructor(
                     updatedAt = now,
                 ),
             )
+            if (mask != null) db?.transactionDao()?.backfillByMask(newId, mask)
+            newId
         }
     }
 

@@ -57,6 +57,12 @@ import com.impeesa.finance.feature.add.AddTransactionScreen
 import com.impeesa.finance.feature.detail.DetailScreen
 import com.impeesa.finance.feature.home.HomeScreen
 import com.impeesa.finance.feature.placeholder.ComingSoonScreen
+import com.impeesa.finance.feature.onboarding.ImportScreen
+import com.impeesa.finance.feature.onboarding.SmsPermissionScreen
+import com.impeesa.finance.feature.onboarding.WelcomeScreen
+import com.impeesa.finance.feature.review.ReviewScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import com.impeesa.finance.core.ui.R as UiR
@@ -68,6 +74,10 @@ import com.impeesa.finance.core.ui.R as UiR
 @Serializable data class AddTransactionRoute(val editId: Long = 0L)
 @Serializable data class DetailRoute(val id: Long)
 @Serializable data class AccountFormRoute(val id: Long = 0L)
+@Serializable data object WelcomeRoute
+@Serializable data object SmsPermissionRoute
+@Serializable data object ImportRoute
+@Serializable data object ReviewRoute
 
 private data class Tab(val route: Any, @StringRes val label: Int, @DrawableRes val icon: Int)
 
@@ -79,9 +89,23 @@ private val tabs = listOf(
 )
 
 @Composable
-fun ImpeesaNavHost() {
+fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
     val container = LocalAppContainer.current
     val navController = rememberNavController()
+    val startDestination: Any = remember { if (container.prefs.onboardingDone) HomeRoute else WelcomeRoute }
+    val link by pendingLink.collectAsStateWithLifecycle()
+    LaunchedEffect(link) {
+        val target = link ?: return@LaunchedEffect
+        if (!container.prefs.onboardingDone) return@LaunchedEffect
+        when {
+            target == "review" -> navController.navigate(ReviewRoute) { launchSingleTop = true }
+            target.startsWith("txn:") -> target.removePrefix("txn:").toLongOrNull()?.let { navController.navigate(DetailRoute(it)) }
+        }
+        onLinkHandled()
+    }
+    fun finishOnboarding(next: Any) {
+        navController.navigate(next) { popUpTo(0) { inclusive = true } }
+    }
     val backStack by navController.currentBackStackEntryAsState()
     val destination = backStack?.destination
     val onTab = tabs.any { destination?.hasRoute(it.route::class) == true }
@@ -95,13 +119,37 @@ fun ImpeesaNavHost() {
     }
 
     Box(Modifier.fillMaxSize().background(ImpeesaTheme.colors.ink)) {
-        NavHost(navController = navController, startDestination = HomeRoute) {
+        NavHost(navController = navController, startDestination = startDestination) {
+            composable<WelcomeRoute> { WelcomeScreen(onStart = { navController.navigate(SmsPermissionRoute) }) }
+            composable<SmsPermissionRoute> {
+                SmsPermissionScreen(
+                    onGranted = {
+                        navController.navigate(ImportRoute) { popUpTo<SmsPermissionRoute> { inclusive = true } }
+                    },
+                    onSkip = {
+                        val fromWelcome = navController.previousBackStackEntry?.destination?.hasRoute(WelcomeRoute::class) == true
+                        if (fromWelcome) finishOnboarding(HomeRoute) else navController.popBackStack()
+                    },
+                )
+            }
+            composable<ImportRoute> {
+                ImportScreen(
+                    onDone = { finishOnboarding(HomeRoute) },
+                    onReview = {
+                        finishOnboarding(HomeRoute)
+                        navController.navigate(ReviewRoute)
+                    },
+                )
+            }
+            composable<ReviewRoute> { ReviewScreen(onBack = { navController.popBackStack() }) }
             composable<HomeRoute> {
                 HomeScreen(
                     onAddTransaction = { navController.navigate(AddTransactionRoute()) },
                     onOpenTransaction = { navController.navigate(DetailRoute(it)) },
                     onSeeAll = { navController.switchTab(ActivityRoute) },
                     onAccounts = { navController.switchTab(AccountsRoute) },
+                    onReview = { navController.navigate(ReviewRoute) },
+                    onEnableSms = { navController.navigate(SmsPermissionRoute) },
                 )
             }
             composable<InsightsRoute> { ComingSoonScreen(title = "Insights", phase = "Phase 6") }
@@ -123,6 +171,7 @@ fun ImpeesaNavHost() {
                 DetailScreen(
                     id = route.id,
                     onBack = { navController.popBackStack() },
+                    onReview = { navController.navigate(ReviewRoute) },
                     onEdit = { id ->
                         // Editing can replace the rows (e.g. expense -> transfer), so return to the list afterwards.
                         navController.navigate(AddTransactionRoute(editId = id)) {

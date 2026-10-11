@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.impeesa.finance.core.data.AccountRepository
+import com.impeesa.finance.core.data.ReviewRepository
 import com.impeesa.finance.core.data.TransactionRepository
 import com.impeesa.finance.core.model.Account
 import com.impeesa.finance.core.model.DateKey
@@ -33,6 +34,7 @@ data class HomeUiState(
     val accounts: List<Account> = emptyList(),
     val recent: List<TxnUi> = emptyList(),
     val transactionCount: Int = 0,
+    val reviewCount: Int = 0,
 ) {
     val isEmpty: Boolean get() = !loading && transactionCount == 0
 }
@@ -40,6 +42,7 @@ data class HomeUiState(
 class HomeViewModel(
     transactions: TransactionRepository,
     accounts: AccountRepository,
+    review: ReviewRepository,
     private val clock: Clock,
 ) : ViewModel() {
 
@@ -52,8 +55,10 @@ class HomeViewModel(
             transactions.observeRecent(limit = 5),
             accounts.observeAccounts(),
             transactions.observeCount(),
-        ) { summary, recent, accountList, count ->
+            review.observeCount(),
+        ) { summary, recent, accountList, count, reviewCount ->
             HomeUiState(
+                reviewCount = reviewCount,
                 loading = false,
                 greeting = greetingNow(),
                 monthName = month.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH),
