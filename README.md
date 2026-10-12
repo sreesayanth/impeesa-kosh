@@ -2,13 +2,15 @@
 
 <img src="docs/screenshots/banner.png" alt="Impeesa Kosh: know where every rupee goes" width="100%">
 
+<img src="docs/icon.png" width="96" alt="Impeesa Kosh app icon">
+
 # Impeesa Kosh
 
 **A private personal-finance app for Android that tracks your money from bank SMS and UPI alerts, automatically and entirely on your phone.**
 
-[![Download APK](https://img.shields.io/badge/Download-APK%20v0.4.0-C5F26B?style=for-the-badge&logo=android&logoColor=0B0D10&labelColor=0B0D10)](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.4.0.apk)
+[![Download APK](https://img.shields.io/badge/Download-APK%20v0.4.1-C5F26B?style=for-the-badge&logo=android&logoColor=0B0D10&labelColor=0B0D10)](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.4.1.apk)
 
-![Version](https://img.shields.io/badge/version-0.4.0-C5F26B?labelColor=15181D)
+![Version](https://img.shields.io/badge/version-0.4.1-C5F26B?labelColor=15181D)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white&labelColor=15181D)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white&labelColor=15181D)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=jetpackcompose&logoColor=white&labelColor=15181D)
@@ -33,20 +35,20 @@ The app has **no internet permission at all**. The build fails if any library tr
 <tr>
 <td width="60%">
 
-### Impeesa Kosh 0.4.0
+### Impeesa Kosh 0.4.1
 
 | | |
 |---|---|
-| **File** | [`impeesa-kosh-0.4.0.apk`](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.4.0.apk) |
+| **File** | [`impeesa-kosh-0.4.1.apk`](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.4.1.apk) |
 | **Size** | 11.3 MB |
 | **Requires** | Android 8.0 (API 26) or newer, ARM phone |
 | **Package** | `com.impeesa.finance` |
-| **SHA-256** | `EBFB897DF990FBF857C32506F6B7728A75BF44BB4BF607DA905FEC60B574DA1A` |
+| **SHA-256** | `18A7A74D48B9D34515F03ED3BCA8A79D584E55EB2DC5B3B384CE9D04DB766A95` |
 
 </td>
 <td width="40%" align="center">
 
-<a href="https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.4.0.apk"><img src="https://img.shields.io/badge/⬇%20Download%20APK-0.4.0-C5F26B?style=for-the-badge&labelColor=0B0D10" alt="Download APK"></a>
+<a href="https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.4.1.apk"><img src="https://img.shields.io/badge/⬇%20Download%20APK-0.4.1-C5F26B?style=for-the-badge&labelColor=0B0D10" alt="Download APK"></a>
 
 <sub>Or browse the <a href="release/">release folder</a></sub>
 

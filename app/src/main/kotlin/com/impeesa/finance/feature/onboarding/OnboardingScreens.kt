@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -38,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -45,6 +47,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.impeesa.finance.LocalAppContainer
+import com.impeesa.finance.R
 import com.impeesa.finance.capture.InboxReconcileWorker
 import com.impeesa.finance.core.model.Money
 import com.impeesa.finance.core.ui.component.AmountText
@@ -100,9 +103,7 @@ fun WelcomeScreen(onStart: () -> Unit) {
     val colors = ImpeesaTheme.colors
     OnboardingScaffold(step = 0) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(colors.lime), contentAlignment = Alignment.Center) {
-                Text("i", style = ImpeesaTheme.type.headline, color = colors.onLime)
-            }
+            Image(painterResource(R.drawable.ic_brand_mark), contentDescription = null, modifier = Modifier.size(44.dp))
             Text("Impeesa Kosh", style = ImpeesaTheme.type.headline, color = colors.textPrimary)
         }
         Spacer(Modifier.height(24.dp))
