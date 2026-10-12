@@ -130,11 +130,11 @@ flowchart LR
     B[Payment-app<br/>notification] --> G
     G[Gatekeeping<br/>known senders only] --> C[Classify<br/>debit · credit · OTP · promo · bill]
     C --> E[Extract<br/>amount · account · merchant · ref]
-    E --> S[Score &amp; route]
+    E --> S[Score and route]
     S -->|confident| L[Auto-log]
     S -->|unsure| R[Review queue]
     S -->|OTP / promo / failed| D[Drop + count]
-    L --> M[De-dup &amp; link<br/>same payment · transfers · refunds]
+    L --> M[De-dup and link<br/>same payment · transfers · refunds]
     R --> M
     M --> DB[(Encrypted<br/>database)]
 ```
