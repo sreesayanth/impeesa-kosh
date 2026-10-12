@@ -13,6 +13,11 @@ data class Account(
     val balance: Money,
     val creditLimit: Money?,
     val includeInNet: Boolean,
+    /** When the balance was last set by the bank or the user; null = computed from the opening balance. */
+    val syncedAt: Long? = null,
+    val syncedFromBank: Boolean = false,
+    /** Low-balance alert threshold; null = off. */
+    val lowBalance: Money? = null,
 ) {
     /** Amount owed on a credit card; zero for other accounts. */
     val owed: Money get() = if (type == AccountType.CARD && balance.isNegative) -balance else Money.ZERO

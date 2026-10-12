@@ -40,6 +40,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.impeesa.finance.LocalAppContainer
 import com.impeesa.finance.core.data.AccountDraft
+import com.impeesa.finance.core.data.AccountSuggestion
 import com.impeesa.finance.core.data.AccountRepository
 import com.impeesa.finance.core.model.AccountType
 import com.impeesa.finance.core.model.AmountInput
@@ -76,7 +77,11 @@ data class AccountFormState(
     val balance: String = "",
     val limit: String = "",
     val color: Int = accountColors.first(),
+    val statementDay: String = "",
+    val dueDay: String = "",
     val error: String? = null,
+    /** Accounts seen in messages, offered when adding (§5.7 discovery). */
+    val suggestions: List<AccountSuggestion> = emptyList(),
 )
 
 class AccountFormViewModel(
@@ -101,8 +106,26 @@ class AccountFormViewModel(
                     balance = AmountInput.of(draft.openingBalance).text,
                     limit = draft.creditLimit?.let { AmountInput.of(it).text }.orEmpty(),
                     color = draft.color,
+                    statementDay = draft.statementDay?.toString().orEmpty(),
+                    dueDay = draft.dueDay?.toString().orEmpty(),
                 )
             }
+        } else {
+            viewModelScope.launch {
+                repository.observeSuggestions().collect { list -> form.update { it.copy(suggestions = list) } }
+            }
+        }
+    }
+
+    fun setStatementDay(value: String) = form.update { it.copy(statementDay = value.filter(Char::isDigit).take(2), error = null) }
+    fun setDueDay(value: String) = form.update { it.copy(dueDay = value.filter(Char::isDigit).take(2), error = null) }
+
+    /** Adds an account found in messages, claiming the transactions already captured for it. */
+    fun addSuggestion(suggestion: AccountSuggestion) {
+        viewModelScope.launch {
+            repository.acceptSuggestion(suggestion.id)
+            undo.post(UndoEvent("Added ${suggestion.institution} ••${suggestion.mask}"))
+            doneChannel.send(Unit)
         }
     }
 
@@ -117,10 +140,14 @@ class AccountFormViewModel(
         val s = form.value
         val balance = if (s.balance.isBlank()) Money.ZERO else AmountInput.parse(s.balance)
         val limit = if (s.limit.isBlank()) null else AmountInput.parse(s.limit)
+        val statementDay = s.statementDay.toIntOrNull()
+        val dueDay = s.dueDay.toIntOrNull()
         val error = when {
             s.name.isBlank() -> "Give the account a name"
             balance == null -> "Check the balance amount"
             s.limit.isNotBlank() && limit == null -> "Check the credit limit"
+            statementDay != null && statementDay !in 1..31 -> "Statement day is a day of the month (1–31)"
+            dueDay != null && dueDay !in 1..31 -> "Due day is a day of the month (1–31)"
             else -> null
         }
         if (error != null) {
@@ -137,6 +164,8 @@ class AccountFormViewModel(
                     color = s.color,
                     openingBalance = balance!!,
                     creditLimit = limit,
+                    statementDay = statementDay,
+                    dueDay = dueDay,
                 ),
             )
             doneChannel.send(Unit)
@@ -174,6 +203,34 @@ fun AccountFormScreen(id: Long?, onBack: () -> Unit) {
     ) {
         ScreenHeader(title = if (state.isEditing) "Edit account" else "New account", onBack = onBack)
 
+        if (state.suggestions.isNotEmpty()) {
+            Column(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(colors.lime.copy(alpha = 0.07f)).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text("Found in your messages", style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
+                state.suggestions.forEach { suggestion ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("${suggestion.institution} ••${suggestion.mask}", style = ImpeesaTheme.type.body, color = colors.textPrimary)
+                            Text(
+                                (if (suggestion.looksLikeCard) "Card" else "Bank account") + " · seen ${suggestion.sightings} " + if (suggestion.sightings == 1) "time" else "times",
+                                style = ImpeesaTheme.type.caption,
+                                color = colors.textTertiary,
+                            )
+                        }
+                        Text(
+                            "Add",
+                            style = ImpeesaTheme.type.label,
+                            color = colors.ink,
+                            modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(colors.lime).clickable(role = Role.Button) { viewModel.addSuggestion(suggestion) }.padding(horizontal = 16.dp, vertical = 9.dp),
+                        )
+                    }
+                }
+                Text("Or add one by hand below.", style = ImpeesaTheme.type.caption, color = colors.textSecondary)
+            }
+        }
+
         SegmentedControl(
             options = listOf("Bank", "Card", "Wallet", "Cash"),
             selectedIndex = types.indexOf(state.type),
@@ -205,11 +262,22 @@ fun AccountFormScreen(id: Long?, onBack: () -> Unit) {
         ImpeesaTextField(
             value = state.balance,
             onValueChange = viewModel::setBalance,
-            label = if (state.type == AccountType.CARD) "Amount owed today" else "Current balance",
+            label = when {
+                state.isEditing -> if (state.type == AccountType.CARD) "Owed when added" else "Starting balance"
+                state.type == AccountType.CARD -> "Amount owed today"
+                else -> "Current balance"
+            },
             placeholder = "0",
             keyboardType = KeyboardType.Decimal,
             prefix = "₹",
         )
+        if (state.isEditing) {
+            Text(
+                "Used until your bank's SMS tells Impeesa the balance. To correct today's balance, use “Set balance” on the account.",
+                style = ImpeesaTheme.type.caption,
+                color = colors.textTertiary,
+            )
+        }
 
         if (state.type == AccountType.CARD) {
             ImpeesaTextField(
@@ -220,6 +288,25 @@ fun AccountFormScreen(id: Long?, onBack: () -> Unit) {
                 keyboardType = KeyboardType.Decimal,
                 prefix = "₹",
             )
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                ImpeesaTextField(
+                    value = state.statementDay,
+                    onValueChange = viewModel::setStatementDay,
+                    label = "Statement day",
+                    placeholder = "e.g. 20",
+                    keyboardType = KeyboardType.Number,
+                    modifier = Modifier.weight(1f),
+                )
+                ImpeesaTextField(
+                    value = state.dueDay,
+                    onValueChange = viewModel::setDueDay,
+                    label = "Due day",
+                    placeholder = "e.g. 8",
+                    keyboardType = KeyboardType.Number,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Text("With a due day, Impeesa reminds you 3 days before and on the day, even before a statement SMS arrives.", style = ImpeesaTheme.type.caption, color = colors.textTertiary)
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

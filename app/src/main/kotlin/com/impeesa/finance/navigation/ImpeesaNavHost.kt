@@ -51,7 +51,10 @@ import com.impeesa.finance.LocalAppContainer
 import com.impeesa.finance.R
 import com.impeesa.finance.core.ui.theme.ImpeesaTheme
 import com.impeesa.finance.feature.accounts.AccountFormScreen
+import com.impeesa.finance.feature.accounts.AccountDetailScreen
 import com.impeesa.finance.feature.accounts.AccountsScreen
+import com.impeesa.finance.feature.alerts.AlertSettingsScreen
+import com.impeesa.finance.feature.alerts.AlertsScreen
 import com.impeesa.finance.feature.activity.ActivityScreen
 import com.impeesa.finance.feature.add.AddTransactionScreen
 import com.impeesa.finance.feature.detail.DetailScreen
@@ -98,6 +101,9 @@ import com.impeesa.finance.core.ui.R as UiR
 @Serializable data object HabitsRoute
 @Serializable data object BudgetsRoute
 @Serializable data class BudgetEditorRoute(val id: Long = 0L)
+@Serializable data class AccountDetailRoute(val id: Long)
+@Serializable data object AlertsRoute
+@Serializable data object AlertSettingsRoute
 
 private data class Tab(val route: Any, @StringRes val label: Int, @DrawableRes val icon: Int)
 
@@ -120,8 +126,28 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
         when {
             target == "review" -> navController.navigate(ReviewRoute) { launchSingleTop = true }
             target.startsWith("txn:") -> target.removePrefix("txn:").toLongOrNull()?.let { navController.navigate(DetailRoute(it)) }
+            target.startsWith("account:") -> target.removePrefix("account:").toLongOrNull()?.let { navController.navigate(AccountDetailRoute(it)) }
+            target == "budgets" -> navController.navigate(BudgetsRoute) { launchSingleTop = true }
+            target == "habits" -> navController.navigate(HabitsRoute) { launchSingleTop = true }
+            target == "insights" -> navController.switchTab(InsightsRoute)
+            target == "accounts" -> navController.switchTab(AccountsRoute)
+            target == "sources" -> navController.navigate(SourcesRoute) { launchSingleTop = true }
+            target == "alerts" -> navController.navigate(AlertsRoute) { launchSingleTop = true }
         }
         onLinkHandled()
+    }
+    // Opening an alert from the list follows the same links as a notification.
+    fun openLink(target: String) {
+        when {
+            target == "review" -> navController.navigate(ReviewRoute)
+            target.startsWith("txn:") -> target.removePrefix("txn:").toLongOrNull()?.let { navController.navigate(DetailRoute(it)) }
+            target.startsWith("account:") -> target.removePrefix("account:").toLongOrNull()?.let { navController.navigate(AccountDetailRoute(it)) }
+            target == "budgets" -> navController.navigate(BudgetsRoute)
+            target == "habits" -> navController.navigate(HabitsRoute)
+            target == "insights" -> navController.switchTab(InsightsRoute)
+            target == "accounts" -> navController.switchTab(AccountsRoute)
+            target == "sources" -> navController.navigate(SourcesRoute)
+        }
     }
     fun finishOnboarding(next: Any) {
         navController.navigate(next) { popUpTo(0) { inclusive = true } }
@@ -151,6 +177,7 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
                     onAutoCapture = { navController.navigate(SourcesRoute) },
                     onRules = { navController.navigate(RulesRoute) },
                     onBudgets = { navController.navigate(BudgetsRoute) },
+                    onAlerts = { navController.navigate(AlertSettingsRoute) },
                     onAccounts = { navController.switchTab(AccountsRoute) },
                 )
             }
@@ -210,6 +237,7 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
                     onProfile = { navController.navigate(EditProfileRoute) },
                     onBudgets = { navController.navigate(BudgetsRoute) },
                     onInsights = { navController.switchTab(InsightsRoute) },
+                    onAlerts = { navController.navigate(AlertsRoute) },
                 )
             }
             composable<InsightsRoute> {
@@ -231,10 +259,27 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
             }
             composable<AccountsRoute> {
                 AccountsScreen(
-                    onOpen = { navController.navigate(AccountFormRoute(it)) },
+                    onOpen = { navController.navigate(AccountDetailRoute(it)) },
                     onAdd = { navController.navigate(AccountFormRoute()) },
                 )
             }
+            composable<AccountDetailRoute> { entry ->
+                val accountId = entry.toRoute<AccountDetailRoute>().id
+                AccountDetailScreen(
+                    id = accountId,
+                    onBack = { navController.popBackStack() },
+                    onEdit = { navController.navigate(AccountFormRoute(accountId)) },
+                    onOpenTransaction = { navController.navigate(DetailRoute(it)) },
+                )
+            }
+            composable<AlertsRoute> {
+                AlertsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpen = ::openLink,
+                    onSettings = { navController.navigate(AlertSettingsRoute) },
+                )
+            }
+            composable<AlertSettingsRoute> { AlertSettingsScreen(onBack = { navController.popBackStack() }) }
             composable<AddTransactionRoute> { entry ->
                 val route = entry.toRoute<AddTransactionRoute>()
                 AddTransactionScreen(editId = route.editId.takeIf { it > 0 }, onClose = { navController.popBackStack() })

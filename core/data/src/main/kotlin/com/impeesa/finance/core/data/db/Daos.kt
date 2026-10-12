@@ -12,7 +12,7 @@ import com.impeesa.finance.core.model.TxnSource
 import com.impeesa.finance.core.model.TxnType
 import kotlinx.coroutines.flow.Flow
 
-/** Account plus its live balance: opening balance + credits − debits. */
+/** Account plus its live balance (see [BALANCE_EXPR]). */
 data class AccountBalanceRow(
     val id: Long,
     val type: AccountType,
@@ -22,7 +22,30 @@ data class AccountBalanceRow(
     val creditLimitPaise: Long?,
     val includeInNet: Boolean,
     val balancePaise: Long,
+    /** When the bank (or the user) last told us the balance; null = computed from the opening balance. */
+    val syncedAt: Long?,
+    val syncSource: String?,
+    val lowBalancePaise: Long?,
 )
+
+/** Signed sum of account `a`'s confirmed transactions; callers may add "AND t.occurred_at > …". */
+private const val MOVEMENTS = "SELECT SUM(CASE WHEN t.direction = 'CREDIT' THEN t.amount_paise ELSE -t.amount_paise END) FROM transactions t WHERE t.account_id = a.id AND t.deleted_at IS NULL AND t.status = 'CONFIRMED'"
+
+/** The latest snapshot for account a, as s. */
+internal const val LATEST_SNAPSHOT_JOIN = "LEFT JOIN balance_snapshots s ON s.id = (SELECT s2.id FROM balance_snapshots s2 WHERE s2.account_id = a.id ORDER BY s2.as_of DESC, s2.id DESC LIMIT 1)"
+
+/**
+ * Balance per IMPLEMENTATION_PLAN.md §9.5: the latest snapshot plus what happened after it; a card's
+ * available-limit snapshot means owed = limit − available; without snapshots, opening balance + everything.
+ */
+internal const val BALANCE_EXPR = """
+    CASE
+      WHEN s.kind = 'BALANCE' THEN s.balance_paise + COALESCE(($MOVEMENTS AND t.occurred_at > s.as_of), 0)
+      WHEN s.kind = 'AVAILABLE_LIMIT' AND a.credit_limit_paise IS NOT NULL
+        THEN s.balance_paise - a.credit_limit_paise + COALESCE(($MOVEMENTS AND t.occurred_at > s.as_of), 0)
+      ELSE a.opening_balance_paise + COALESCE(($MOVEMENTS), 0)
+    END
+"""
 
 @Dao
 interface AccountDao {
@@ -48,20 +71,15 @@ interface AccountDao {
     suspend fun cashAccountId(): Long?
 
     @Query(
-        """
-        SELECT a.id, a.type, a.name, a.mask, a.color,
-               a.credit_limit_paise AS creditLimitPaise, a.include_in_net AS includeInNet,
-               a.opening_balance_paise + COALESCE((
-                   SELECT SUM(CASE WHEN t.direction = 'CREDIT' THEN t.amount_paise ELSE -t.amount_paise END)
-                   FROM transactions t
-                   WHERE t.account_id = a.id AND t.deleted_at IS NULL AND t.status = 'CONFIRMED'
-               ), 0) AS balancePaise
-        FROM accounts a
-        WHERE a.archived = 0
-        ORDER BY CASE a.type WHEN 'BANK' THEN 0 WHEN 'CARD' THEN 1 WHEN 'WALLET' THEN 2 ELSE 3 END, a.name
-        """,
+        "SELECT a.id, a.type, a.name, a.mask, a.color, a.credit_limit_paise AS creditLimitPaise, a.include_in_net AS includeInNet, " +
+            "$BALANCE_EXPR AS balancePaise, s.as_of AS syncedAt, s.source AS syncSource, a.low_balance_paise AS lowBalancePaise " +
+            "FROM accounts a $LATEST_SNAPSHOT_JOIN WHERE a.archived = 0 " +
+            "ORDER BY CASE a.type WHEN 'BANK' THEN 0 WHEN 'CARD' THEN 1 WHEN 'WALLET' THEN 2 ELSE 3 END, a.name",
     )
     fun observeActiveWithBalance(): Flow<List<AccountBalanceRow>>
+
+    @Query("SELECT $BALANCE_EXPR FROM accounts a $LATEST_SNAPSHOT_JOIN WHERE a.id = :id")
+    suspend fun balanceOf(id: Long): Long?
 }
 
 @Dao

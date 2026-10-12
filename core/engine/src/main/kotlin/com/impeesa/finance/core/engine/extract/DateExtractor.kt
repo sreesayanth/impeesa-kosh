@@ -15,7 +15,8 @@ object DateExtractor {
 
     private val months = listOf("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")
 
-    fun extract(text: String, received: LocalDate): LocalDate? {
+    /** First plausible date: by default up to 45 days before the message and 1 day after. Due dates pass a future window. */
+    fun extract(text: String, received: LocalDate, daysBefore: Long = 45, daysAfter: Long = 1): LocalDate? {
         val candidates = buildList {
             iso.findAll(text).forEach { m -> add(m.range.first to date(m.groupValues[1], m.groupValues[2].toInt(), m.groupValues[3].toInt())) }
             numeric.findAll(text).forEach { m -> add(m.range.first to date(m.groupValues[3], m.groupValues[2].toInt(), m.groupValues[1].toInt())) }
@@ -27,7 +28,7 @@ object DateExtractor {
         return candidates
             .sortedBy { it.first }
             .mapNotNull { it.second }
-            .firstOrNull { isPlausible(it, received) }
+            .firstOrNull { !it.isBefore(received.minusDays(daysBefore)) && !it.isAfter(received.plusDays(daysAfter)) }
     }
 
     private fun date(year: String, month: Int, day: Int): LocalDate? {
@@ -43,6 +44,4 @@ object DateExtractor {
         }
     }
 
-    private fun isPlausible(date: LocalDate, received: LocalDate): Boolean =
-        !date.isBefore(received.minusDays(45)) && !date.isAfter(received.plusDays(1))
 }

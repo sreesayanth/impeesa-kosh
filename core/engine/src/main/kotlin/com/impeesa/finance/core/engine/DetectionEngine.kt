@@ -9,6 +9,7 @@ import com.impeesa.finance.core.engine.extract.ChannelDetector
 import com.impeesa.finance.core.engine.extract.CounterpartyExtractor
 import com.impeesa.finance.core.engine.extract.DateExtractor
 import com.impeesa.finance.core.engine.extract.ReferenceExtractor
+import com.impeesa.finance.core.engine.extract.StatementExtractor
 import com.impeesa.finance.core.engine.merchant.MerchantDirectory
 import com.impeesa.finance.core.engine.registry.AppKind
 import com.impeesa.finance.core.engine.registry.AppRegistry
@@ -92,6 +93,7 @@ class DetectionEngine(
             templateId = template?.spec?.id,
             senderEntity = gate.entity,
             account = AccountResolver.resolve(gate.entity, mask, context.accounts),
+            statement = if (type == MessageType.STATEMENT) StatementExtractor.extract(text, received) else null,
         )
     }
 

@@ -25,6 +25,7 @@ class DataGraph(context: Context, clock: Clock) {
     val categorizationRepository: CategorizationRepository by lazy { CategorizationRepository(database, clock) }
     val analyticsRepository: AnalyticsRepository by lazy { AnalyticsRepository(database, clock) }
     val budgetRepository: BudgetRepository by lazy { BudgetRepository(database, clock) }
+    val ledgerRepository: LedgerRepository by lazy { LedgerRepository(database, clock) }
     val captureRepository: CaptureRepository by lazy {
         CaptureRepository(appContext, database, DetectionEngine::withBundledData, clock)
     }

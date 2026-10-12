@@ -94,6 +94,27 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun version5To6AddsLedgerTables() {
+        helper.createDatabase(DB, 5).apply {
+            execSQL(
+                "INSERT INTO accounts (id, type, institution, name, mask, color, opening_balance_paise, include_in_net, archived, created_at, updated_at) " +
+                    "VALUES (3, 'BANK', NULL, 'HDFC', '4821', 0, 1000, 1, 0, 0, 0)",
+            )
+            close()
+        }
+        val db = helper.runMigrationsAndValidate(DB, 6, true)
+        db.query("SELECT opening_balance_paise, low_balance_paise FROM accounts WHERE id = 3").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(1000L, cursor.getLong(0))
+            assertEquals(true, cursor.isNull(1))
+        }
+        db.query("SELECT COUNT(*) FROM alerts").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(0, cursor.getInt(0))
+        }
+    }
+
     private companion object {
         const val DB = "migration-test"
     }

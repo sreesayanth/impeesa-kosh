@@ -30,6 +30,8 @@ data class AccountEntity(
     val archived: Boolean = false,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
+    /** Alert when the balance drops below this; null = off. */
+    @ColumnInfo(name = "low_balance_paise") val lowBalancePaise: Long? = null,
 )
 
 @Entity(tableName = "categories", indices = [Index("parent_id")])
@@ -213,4 +215,48 @@ data class RecurringPrefEntity(
     /** HIDDEN: "not a subscription". */
     val status: String,
     val at: Long,
+)
+/**
+ * A balance the bank told us ("Avl Bal"), or the user set (IMPLEMENTATION_PLAN.md §9.5).
+ * BALANCE is money in the account; AVAILABLE_LIMIT is a card's unused limit.
+ */
+@Entity(tableName = "balance_snapshots", indices = [Index("account_id", "as_of")])
+data class BalanceSnapshotEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "account_id") val accountId: Long,
+    val kind: String,
+    @ColumnInfo(name = "balance_paise") val balancePaise: Long,
+    @ColumnInfo(name = "as_of") val asOf: Long,
+    /** SMS or MANUAL. */
+    val source: String,
+    /** Snapshot minus what Impeesa had computed just before; the reconciliation difference. */
+    @ColumnInfo(name = "diff_paise") val diffPaise: Long = 0,
+    @ColumnInfo(name = "raw_id") val rawId: Long? = null,
+)
+
+/** A credit-card bill, from a statement SMS or entered by hand. */
+@Entity(tableName = "card_statements", indices = [Index(value = ["account_id", "due_date"], unique = true)])
+data class CardStatementEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "account_id") val accountId: Long,
+    @ColumnInfo(name = "statement_date") val statementDate: Int,
+    @ColumnInfo(name = "due_date") val dueDate: Int,
+    @ColumnInfo(name = "total_due_paise") val totalDuePaise: Long?,
+    @ColumnInfo(name = "min_due_paise") val minDuePaise: Long?,
+    @ColumnInfo(name = "paid_paise") val paidPaise: Long = 0,
+    @ColumnInfo(name = "paid_at") val paidAt: Long? = null,
+    val source: String,
+)
+
+/** The in-app alerts list (60 days). [dedupeKey] is unique, so an alert is never posted twice. */
+@Entity(tableName = "alerts", indices = [Index(value = ["dedupe_key"], unique = true), Index("created_at")])
+data class AlertEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val kind: String,
+    val title: String,
+    val body: String,
+    val link: String,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "read_at") val readAt: Long? = null,
+    @ColumnInfo(name = "dedupe_key") val dedupeKey: String,
 )

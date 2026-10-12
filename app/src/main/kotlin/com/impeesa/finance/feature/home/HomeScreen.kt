@@ -65,6 +65,7 @@ fun HomeScreen(
     onProfile: () -> Unit,
     onBudgets: () -> Unit,
     onInsights: () -> Unit,
+    onAlerts: () -> Unit,
 ) {
     val container = LocalAppContainer.current
     val context = LocalContext.current
@@ -73,6 +74,7 @@ fun HomeScreen(
     }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val profile by container.prefs.profile.collectAsStateWithLifecycle()
+    val unreadAlerts by container.ledgerRepository.observeUnreadAlerts().collectAsStateWithLifecycle(initialValue = 0)
     val colors = ImpeesaTheme.colors
     var smsAllowed by remember { mutableStateOf(SmsPermission.granted(context)) }
     var listenerPaused by remember { mutableStateOf(CaptureHealth.listenerPaused(context)) }
@@ -87,7 +89,7 @@ fun HomeScreen(
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        item(key = "header") { Header(state.greeting, profile, onProfile, onSettings) }
+        item(key = "header") { Header(state.greeting, profile, unreadAlerts, onProfile, onAlerts, onSettings) }
         if (state.loading) return@LazyColumn
 
         if (!smsAllowed) {
@@ -191,7 +193,7 @@ private fun Banner(title: String, body: String, action: String?, tint: Color, on
 }
 
 @Composable
-private fun Header(greeting: Greeting, profile: Profile, onProfile: () -> Unit, onSettings: () -> Unit) {
+private fun Header(greeting: Greeting, profile: Profile, unreadAlerts: Int, onProfile: () -> Unit, onAlerts: () -> Unit, onSettings: () -> Unit) {
     val colors = ImpeesaTheme.colors
     val text = when (greeting) {
         Greeting.MORNING -> R.string.greeting_morning
@@ -213,6 +215,16 @@ private fun Header(greeting: Greeting, profile: Profile, onProfile: () -> Unit, 
                 color = colors.textPrimary,
                 maxLines = 1,
             )
+        }
+        Box {
+            CircleIconButton(
+                icon = UiR.drawable.ic_bell,
+                contentDescription = if (unreadAlerts > 0) "Alerts, $unreadAlerts unread" else "Alerts",
+                onClick = onAlerts,
+            )
+            if (unreadAlerts > 0) {
+                Box(Modifier.align(Alignment.TopEnd).padding(top = 10.dp, end = 11.dp).size(9.dp).clip(CircleShape).background(colors.coral))
+            }
         }
         CircleIconButton(icon = UiR.drawable.ic_tune, contentDescription = "Settings", onClick = onSettings)
     }

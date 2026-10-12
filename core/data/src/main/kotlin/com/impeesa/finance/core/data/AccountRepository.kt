@@ -25,6 +25,9 @@ data class AccountDraft(
     val openingBalance: Money = Money.ZERO,
     val creditLimit: Money? = null,
     val includeInNet: Boolean = true,
+    /** Cards: day of the month the statement is generated and the bill is due (1–31). */
+    val statementDay: Int? = null,
+    val dueDay: Int? = null,
 )
 
 /** An account seen in messages, offered to the user before it is added. */
@@ -125,6 +128,8 @@ class AccountRepository internal constructor(
             ),
             creditLimit = entity.creditLimitPaise?.let(::Money),
             includeInNet = entity.includeInNet,
+            statementDay = entity.statementDay,
+            dueDay = entity.dueDay,
         )
     }
 
@@ -144,6 +149,8 @@ class AccountRepository internal constructor(
                     openingBalancePaise = opening,
                     creditLimitPaise = draft.creditLimit?.paise.takeIf { draft.type == AccountType.CARD },
                     includeInNet = draft.includeInNet,
+                    statementDay = draft.statementDay.takeIf { draft.type == AccountType.CARD },
+                    dueDay = draft.dueDay.takeIf { draft.type == AccountType.CARD },
                     updatedAt = now,
                 ),
             )
@@ -159,6 +166,8 @@ class AccountRepository internal constructor(
                     openingBalancePaise = opening,
                     creditLimitPaise = draft.creditLimit?.paise.takeIf { draft.type == AccountType.CARD },
                     includeInNet = draft.includeInNet,
+                    statementDay = draft.statementDay.takeIf { draft.type == AccountType.CARD },
+                    dueDay = draft.dueDay.takeIf { draft.type == AccountType.CARD },
                     createdAt = now,
                     updatedAt = now,
                 ),
@@ -180,4 +189,7 @@ private fun AccountBalanceRow.toModel() = Account(
     balance = Money(balancePaise),
     creditLimit = creditLimitPaise?.let(::Money),
     includeInNet = includeInNet,
+    syncedAt = syncedAt,
+    syncedFromBank = syncSource == "SMS",
+    lowBalance = lowBalancePaise?.let(::Money),
 )

@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.withTransaction
 import com.impeesa.finance.core.data.CategoryResolver
 import com.impeesa.finance.core.data.db.AccountSuggestionEntity
+import com.impeesa.finance.core.data.db.BalanceSnapshotEntity
+import com.impeesa.finance.core.data.db.CardStatementEntity
 import com.impeesa.finance.core.data.db.CaptureStatEntity
 import com.impeesa.finance.core.data.db.ImpeesaDatabase
 import com.impeesa.finance.core.data.db.RawMessageEntity
@@ -223,7 +225,11 @@ class CaptureRepository internal constructor(
                 route = analysis.route.name,
             ),
         )
-        if (analysis.route == Route.INFO) return@withTransaction IngestResult.Info(analysis.type)
+        val matchedAccount = (analysis.account as? AccountMatch.Matched)?.accountId
+        if (analysis.route == Route.INFO) {
+            matchedAccount?.let { recordLedger(it, analysis, envelope, rawId, context) }
+            return@withTransaction IngestResult.Info(analysis.type)
+        }
 
         val amount = analysis.amount ?: return@withTransaction IngestResult.Info(analysis.type)
         val direction = analysis.direction ?: Direction.DEBIT
@@ -241,6 +247,7 @@ class CaptureRepository internal constructor(
         analysis.reference?.let { ref ->
             transactions.findByReference(ref, amount.paise, direction.name)?.let { existingId ->
                 transactions.getById(existingId)?.let { mergeInto(it, analysis, envelope, accountId, rawId) }
+                accountId?.let { recordLedger(it, analysis, envelope, rawId, context) }
                 return@withTransaction IngestResult.Merged(existingId)
             }
         }
@@ -261,6 +268,7 @@ class CaptureRepository internal constructor(
             val best = candidates.first()
             if (candidates.size == 1 && !merchantsConflict(best, analysis)) {
                 mergeInto(best, analysis, envelope, accountId, rawId)
+                accountId?.let { recordLedger(it, analysis, envelope, rawId, context) }
                 return@withTransaction IngestResult.Merged(best.id)
             }
             duplicateOf = best.id
@@ -268,9 +276,17 @@ class CaptureRepository internal constructor(
 
         val txnId = insertTransaction(envelope, analysis, amount, direction, accountId, rawId, context, duplicateOf)
         capture.linkRaw(rawId, txnId)
+        val saved = transactions.getById(txnId)
+        if (accountId != null) {
+            if (saved != null && direction == Direction.CREDIT && saved.type != TxnType.REFUND && context.accounts.any { it.id == accountId && it.isCard }) {
+                applyCardPayment(accountId, amount)
+            }
+            recordLedger(accountId, analysis, envelope, rawId, context)
+        }
         IngestResult.Logged(
             transactionId = txnId,
-            needsReview = analysis.route == Route.REVIEW || duplicateOf != null || analysis.currency != "INR",
+            // Rules and ambiguous merchants can also send a capture to review (Phase 5).
+            needsReview = saved?.status == TxnStatus.PENDING_REVIEW,
             amount = amount,
             direction = direction,
             title = analysis.merchant?.displayName,
@@ -537,6 +553,78 @@ class CaptureRepository internal constructor(
         transactions.update(credit.copy(status = TxnStatus.IGNORED, linkedTxnId = failed.id, linkKind = LINK_REVERSAL, updatedAt = now))
     }
 
+    // ---------------------------------------------------------------- balances and statements (§9.5, §5.7)
+
+    /**
+     * Keeps what the bank says about an account: "Avl Bal" and a card's available limit become snapshots
+     * (the snapshot wins over Impeesa's own sum), and statement SMS become bills.
+     */
+    private suspend fun recordLedger(accountId: Long, analysis: Analysis, envelope: MessageEnvelope, rawId: Long, context: EngineContext) {
+        val ledger = db.ledgerDao()
+        val asOf = envelope.receivedAt.toEpochMilli()
+        val isCard = context.accounts.any { it.id == accountId && it.isCard }
+        val balance = analysis.balance
+        val limit = analysis.availableLimit
+        val snapshot = when {
+            balance != null && !isCard -> SNAPSHOT_BALANCE to balance.paise
+            limit != null && isCard -> SNAPSHOT_AVAILABLE_LIMIT to limit.paise
+            else -> null
+        }
+        if (snapshot != null) {
+            val previous = ledger.latestSnapshotAt(accountId)
+            // Only the newest snapshot reconciles, and an account's first one has nothing to reconcile against.
+            val diff = if (previous != null && asOf >= previous) {
+                val computed = db.accountDao().balanceOf(accountId) ?: 0L
+                val reported = if (snapshot.first == SNAPSHOT_AVAILABLE_LIMIT) {
+                    db.accountDao().getById(accountId)?.creditLimitPaise?.let { snapshot.second - it }
+                } else {
+                    snapshot.second
+                }
+                reported?.let { it - computed } ?: 0L
+            } else {
+                0L
+            }
+            ledger.insertSnapshot(
+                BalanceSnapshotEntity(accountId = accountId, kind = snapshot.first, balancePaise = snapshot.second, asOf = asOf, source = SOURCE_SMS, diffPaise = diff, rawId = rawId),
+            )
+        }
+        val statement = analysis.statement
+        val dueDate = statement?.dueDate
+        if (isCard && statement != null && dueDate != null) {
+            val due = DateKey.of(dueDate)
+            val existing = ledger.statementFor(accountId, due)
+            if (existing == null) {
+                ledger.insertStatement(
+                    CardStatementEntity(
+                        accountId = accountId,
+                        statementDate = DateKey.of(envelope.receivedAt.atZone(zone).toLocalDate()),
+                        dueDate = due,
+                        totalDuePaise = statement.totalDue?.paise,
+                        minDuePaise = statement.minDue?.paise,
+                        source = SOURCE_SMS,
+                    ),
+                )
+            } else {
+                // A reminder after the statement may add what the first message left out.
+                ledger.updateStatement(
+                    existing.copy(
+                        totalDuePaise = existing.totalDuePaise ?: statement.totalDue?.paise,
+                        minDuePaise = existing.minDuePaise ?: statement.minDue?.paise,
+                    ),
+                )
+            }
+        }
+    }
+
+    /** A credit on a card goes towards its open bill; paying it in full marks it paid (§5.7). */
+    private suspend fun applyCardPayment(accountId: Long, amount: Money) {
+        val ledger = db.ledgerDao()
+        val open = ledger.openStatement(accountId) ?: return
+        val paid = open.paidPaise + amount.paise
+        val settled = open.totalDuePaise == null || paid >= open.totalDuePaise
+        ledger.updateStatement(open.copy(paidPaise = paid, paidAt = if (settled) clock.millis() else null))
+    }
+
     // ---------------------------------------------------------------- helpers
 
     private suspend fun rememberSuggestion(match: AccountMatch.Suggested, analysis: Analysis) {
@@ -576,6 +664,10 @@ class CaptureRepository internal constructor(
         const val REASON_POSSIBLE_DUPLICATE = "POSSIBLE_DUPLICATE"
         const val REASON_AMBIGUOUS_CATEGORY = "AMBIGUOUS_CATEGORY"
         const val REASON_ASK_CATEGORY = "ASK_CATEGORY"
+        const val SNAPSHOT_BALANCE = "BALANCE"
+        const val SNAPSHOT_AVAILABLE_LIMIT = "AVAILABLE_LIMIT"
+        const val SOURCE_SMS = "SMS"
+        const val SOURCE_MANUAL = "MANUAL"
         const val ROUTE_MERGED = "MERGED"
         const val LINK_REFUND = "REFUND_OF"
         const val LINK_REVERSAL = "REVERSAL_OF"

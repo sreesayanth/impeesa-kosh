@@ -3,7 +3,10 @@ package com.impeesa.finance
 import android.content.Context
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.impeesa.finance.capture.CaptureNotifier
+import com.impeesa.finance.alerts.AlertEngine
+import com.impeesa.finance.alerts.AlertNotifier
 import com.impeesa.finance.core.data.DataGraph
+import com.impeesa.finance.core.model.alerts.AlertKind
 import com.impeesa.finance.feature.profile.Profile
 import com.impeesa.finance.ui.UndoBus
 import com.impeesa.finance.ui.analytics.MoneyOverview
@@ -37,9 +40,12 @@ class AppContainer(context: Context) {
     val categorizationRepository get() = data.categorizationRepository
     val analyticsRepository get() = data.analyticsRepository
     val budgetRepository get() = data.budgetRepository
+    val ledgerRepository get() = data.ledgerRepository
     val moneyOverview by lazy { MoneyOverview(data.analyticsRepository, data.budgetRepository, data.categoryRepository) }
 
     val notifier = CaptureNotifier(appContext) { data.reviewRepository }
+    val alertNotifier = AlertNotifier(appContext, notifier)
+    val alertEngine by lazy { AlertEngine(appContext, this) }
 
     suspend fun seed() = data.seed()
 }
@@ -75,6 +81,22 @@ class AppPrefs(context: Context) {
         val clean = if (day >= 29) 31 else day.coerceAtLeast(1)
         prefs.edit().putInt("month_start_day", clean).apply()
         _monthStartDay.value = clean
+    }
+
+    private val _alertKinds = MutableStateFlow(readAlertKinds())
+
+    /** Alert types the user has switched on (§5.10); low balance starts off. */
+    val enabledAlerts: StateFlow<Set<AlertKind>> = _alertKinds.asStateFlow()
+
+    fun setAlertEnabled(kind: AlertKind, enabled: Boolean) {
+        val next = if (enabled) _alertKinds.value + kind else _alertKinds.value - kind
+        prefs.edit().putStringSet("alert_kinds", next.map { it.name }.toSet()).apply()
+        _alertKinds.value = next
+    }
+
+    private fun readAlertKinds(): Set<AlertKind> {
+        val stored = prefs.getStringSet("alert_kinds", null) ?: return AlertKind.entries.filter { it.defaultOn }.toSet()
+        return stored.mapNotNull { name -> AlertKind.entries.firstOrNull { it.name == name } }.toSet()
     }
 
     private val _dismissed = MutableStateFlow(readDismissed())

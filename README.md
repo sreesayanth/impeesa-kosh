@@ -8,9 +8,9 @@
 
 **A private personal-finance app for Android that tracks your money from bank SMS and UPI alerts, automatically and entirely on your phone.**
 
-[![Download APK](https://img.shields.io/badge/Download-APK%20v0.6.0-C5F26B?style=for-the-badge&logo=android&logoColor=0B0D10&labelColor=0B0D10)](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.6.0.apk)
+[![Download APK](https://img.shields.io/badge/Download-APK%20v0.7.0-C5F26B?style=for-the-badge&logo=android&logoColor=0B0D10&labelColor=0B0D10)](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.7.0.apk)
 
-![Version](https://img.shields.io/badge/version-0.6.0-C5F26B?labelColor=15181D)
+![Version](https://img.shields.io/badge/version-0.7.0-C5F26B?labelColor=15181D)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white&labelColor=15181D)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white&labelColor=15181D)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=jetpackcompose&logoColor=white&labelColor=15181D)
@@ -35,20 +35,20 @@ The app has **no internet permission at all**. The build fails if any library tr
 <tr>
 <td width="60%">
 
-### Impeesa Kosh 0.6.0
+### Impeesa Kosh 0.7.0
 
 | | |
 |---|---|
-| **File** | [`impeesa-kosh-0.6.0.apk`](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.6.0.apk) |
+| **File** | [`impeesa-kosh-0.7.0.apk`](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.7.0.apk) |
 | **Size** | 11.5 MB |
 | **Requires** | Android 8.0 (API 26) or newer, ARM phone |
 | **Package** | `com.impeesa.finance` |
-| **SHA-256** | `0008971A6F8FD60AFDA244B77C7F1E960E246D334E7828BCEF6A110338259C77` |
+| **SHA-256** | `564729065731443FA164ACBAC354C4CED6777C3A30A838323ADD642A525F0B92` |
 
 </td>
 <td width="40%" align="center">
 
-<a href="https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.6.0.apk"><img src="https://img.shields.io/badge/⬇%20Download%20APK-0.6.0-C5F26B?style=for-the-badge&labelColor=0B0D10" alt="Download APK"></a>
+<a href="https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.7.0.apk"><img src="https://img.shields.io/badge/⬇%20Download%20APK-0.7.0-C5F26B?style=for-the-badge&labelColor=0B0D10" alt="Download APK"></a>
 
 <sub>Or browse the <a href="release/">release folder</a></sub>
 
@@ -117,6 +117,12 @@ The app has **no internet permission at all**. The build fails if any library tr
 - **Insights**: week, month or year donut by category, a like-for-like comparison ("↓ 12% vs last"), six periods of cash flow and your savings rate.
 - **Habits**: a daily-spend calendar, weekday and weekend patterns, late-night food orders, top merchants, and subscriptions and bills found from repeating payments, with next dates and price changes.
 - Short insights such as "Friday was 3× your usual day" use fixed templates with your numbers filled in. Nothing is generated, and you can dismiss any of them.
+
+**Accounts, cards and alerts**
+- Balances follow your bank. An "Avl Bal" in any SMS (or a card's available limit) becomes the balance, and Impeesa keeps counting from there. When the two disagree, the bank wins and you're told about gaps over ₹500.
+- Credit cards show what's owed, the available limit and utilisation with a 30 % marker. Bills are read from statement SMS (total, minimum, due date) or added by hand, and they're marked paid when the payment SMS arrives.
+- Alerts, on separate notification channels: card bills 3 days before and on the due date (until paid), budget warnings, large payments, unusual days, subscription renewals and price changes, new accounts found, low balance (optional), balance updates, a weekly summary and auto-capture health. Every alert is shown once; the in-app list keeps 60 days.
+- "Set balance" and "Count cash" for when you know better than the SMS.
 
 **Money management**
 - Multiple bank accounts, credit cards, wallets and a cash wallet, with net balance and card dues.
@@ -217,8 +223,9 @@ Both batches are now part of the corpus. To contribute real formats safely, anon
 - [x] **Phase 4:** payment-app notifications, cross-source merge and split, transfer, refund and reversal linking, Auto-capture screen
 - [x] **Phase 5:** categorisation that learns from corrections, rules (merchant, UPI ID, text, account, amount), apply to history, categories editor, Settings
 - [x] **Phase 6:** budgets (salary-cycle months, carry-over, suggestions, rebalance), Insights, Habits, charts, recurring and salary detection, insight rules
-- [ ] **Phase 7:** accounts in depth, card statements and due dates, alerts
-- [ ] **Later:** backup and export, app lock, widgets
+- [x] **Phase 7:** balance snapshots and reconciliation, account and card detail, statements from SMS, auto-mark paid, alerts engine with 11 alert types, Alerts screen and settings
+- [ ] **Phase 8:** app lock, encrypted backup and restore, export, delete all data
+- [ ] **Later:** polish and accessibility pass, widgets and quick settings tile, Play Store release
 
 The full plan, including the technology decisions, data model, security and testing strategy, is in **[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)**.
 

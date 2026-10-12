@@ -1,6 +1,7 @@
 package com.impeesa.finance.core.engine
 
 import com.impeesa.finance.core.engine.classify.MessageType
+import com.impeesa.finance.core.engine.extract.StatementInfo
 import com.impeesa.finance.core.engine.merchant.MerchantMatch
 import com.impeesa.finance.core.model.Channel
 import com.impeesa.finance.core.model.Direction
@@ -89,6 +90,8 @@ data class Analysis(
     val templateId: String? = null,
     val senderEntity: String? = null,
     val account: AccountMatch = AccountMatch.Unknown,
+    /** Set for credit-card statements and due reminders. */
+    val statement: StatementInfo? = null,
 ) {
     val isTransaction: Boolean get() = route == Route.AUTO_LOG || route == Route.REVIEW
 }

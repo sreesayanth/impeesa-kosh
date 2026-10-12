@@ -22,10 +22,13 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         CategoryCorrectionEntity::class,
         BudgetEntity::class,
         RecurringPrefEntity::class,
+        BalanceSnapshotEntity::class,
+        CardStatementEntity::class,
+        AlertEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4), AutoMigration(from = 4, to = 5)],
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4), AutoMigration(from = 4, to = 5), AutoMigration(from = 5, to = 6)],
 )
 internal abstract class ImpeesaDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
@@ -34,6 +37,7 @@ internal abstract class ImpeesaDatabase : RoomDatabase() {
     abstract fun captureDao(): CaptureDao
     abstract fun categorizationDao(): CategorizationDao
     abstract fun analyticsDao(): AnalyticsDao
+    abstract fun ledgerDao(): LedgerDao
 
     companion object {
         private const val NAME = "impeesa.db"

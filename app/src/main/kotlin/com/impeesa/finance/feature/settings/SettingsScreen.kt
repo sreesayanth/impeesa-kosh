@@ -46,6 +46,7 @@ fun SettingsScreen(
     onAutoCapture: () -> Unit,
     onRules: () -> Unit,
     onBudgets: () -> Unit,
+    onAlerts: () -> Unit,
     onAccounts: () -> Unit,
 ) {
     val container = LocalAppContainer.current
@@ -95,6 +96,8 @@ fun SettingsScreen(
             SettingsRow(UiR.drawable.ic_calendar, "Budgets", "Monthly limits and when your month starts", onBudgets)
             HorizontalDivider(color = colors.raised)
             SettingsRow(UiR.drawable.ic_accounts, "Accounts", "Banks, cards, wallets and cash", onAccounts)
+            HorizontalDivider(color = colors.raised)
+            SettingsRow(UiR.drawable.ic_bell, "Alerts", "Bill reminders, budgets, renewals and more", onAlerts)
         }
 
         Text(

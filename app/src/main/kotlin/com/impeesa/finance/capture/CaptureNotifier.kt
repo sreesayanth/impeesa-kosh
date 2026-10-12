@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.impeesa.finance.MainActivity
 import com.impeesa.finance.R
+import com.impeesa.finance.alerts.AlertsWorker
 import com.impeesa.finance.core.data.ReviewRepository
 import com.impeesa.finance.core.data.capture.IngestResult
 import com.impeesa.finance.core.model.Direction
@@ -37,9 +38,14 @@ class CaptureNotifier(private val context: Context, private val review: () -> Re
 
     suspend fun onCaptured(result: IngestResult) {
         when (result) {
-            is IngestResult.Logged -> if (result.needsReview) refreshReviewReminder() else showLogged(result)
+            is IngestResult.Logged -> {
+                if (result.needsReview) refreshReviewReminder() else showLogged(result)
+                AlertsWorker.runNow(context, result.transactionId)
+            }
             // A second source can confirm an item that was waiting for review.
             is IngestResult.Merged -> refreshReviewReminder()
+            // Balances and statements can make bills or low-balance alerts due.
+            is IngestResult.Info -> AlertsWorker.runNow(context)
             else -> Unit
         }
     }
