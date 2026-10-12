@@ -113,7 +113,23 @@ class AppPrefs(context: Context) {
 
     var onboardingDone: Boolean
         get() = prefs.getBoolean("onboarding_done", false)
-        set(value) = prefs.edit().putBoolean("onboarding_done", value).apply()
+        private set(value) = prefs.edit().putBoolean("onboarding_done", value).apply()
+
+    /**
+     * The currency picked during setup. It's shown from the end of setup: switching the display
+     * rebuilds every screen, which mid-setup would send the user back to the start.
+     */
+    var setupCurrency: String?
+        get() = prefs.getString("setup_currency", null)
+        set(value) = prefs.edit().putString("setup_currency", value).apply()
+
+    fun finishOnboarding() {
+        onboardingDone = true
+        setupCurrency?.let { code ->
+            if (code != money.value.currency.code) setMoney(Currencies.byCode(code).let { MoneySettings(it, it.defaultGrouping) })
+            setupCurrency = null
+        }
+    }
 
     private val _profile = MutableStateFlow(
         Profile(

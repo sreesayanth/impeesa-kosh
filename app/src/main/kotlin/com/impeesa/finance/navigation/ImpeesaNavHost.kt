@@ -234,7 +234,8 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit, o
                     onDone = { finishOnboarding(HomeRoute) },
                     onReview = {
                         finishOnboarding(HomeRoute)
-                        navController.navigate(ReviewRoute)
+                        // As a link, so it still opens if a currency picked during setup rebuilds the screens.
+                        onOpenLink("review")
                     },
                 )
             }
@@ -322,7 +323,15 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit, o
             }
             composable<AccountFormRoute> { entry ->
                 val route = entry.toRoute<AccountFormRoute>()
-                AccountFormScreen(id = route.id.takeIf { it > 0 }, onBack = { navController.popBackStack() })
+                AccountFormScreen(
+                    id = route.id.takeIf { it > 0 },
+                    onBack = { navController.popBackStack() },
+                    // The merged account is gone; show the one it went into instead of its detail.
+                    onMerged = { into ->
+                        if (!navController.popBackStack<AccountDetailRoute>(inclusive = true)) navController.popBackStack()
+                        navController.navigate(AccountDetailRoute(into))
+                    },
+                )
             }
         }
 

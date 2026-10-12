@@ -25,6 +25,15 @@ class SenderRegistry(institutions: List<Institution>) {
 
     fun find(entity: String?): Institution? = entity?.let { byCode[it.uppercase()] }
 
+    /**
+     * Every sender code of the same institution as [entity] (HDFCBK and HDFCBN are both HDFC Bank),
+     * including [entity] itself; just [entity] when it isn't a known institution.
+     */
+    fun codesOf(entity: String): Set<String> {
+        val institution = find(entity) ?: return setOf(entity)
+        return byName[institution.institution.lowercase()].orEmpty().map { it.code.uppercase() }.toSet() + entity
+    }
+
     /** For RCS/messaging-app notifications, whose title is the sender's display name. */
     fun findByName(name: String?): Institution? {
         val key = name?.trim()?.lowercase() ?: return null

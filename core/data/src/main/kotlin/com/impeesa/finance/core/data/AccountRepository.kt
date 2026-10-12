@@ -6,12 +6,14 @@ import com.impeesa.finance.core.data.db.AccountDao
 import com.impeesa.finance.core.data.db.AccountEntity
 import com.impeesa.finance.core.data.db.AccountIdentifierEntity
 import com.impeesa.finance.core.data.db.ImpeesaDatabase
+import com.impeesa.finance.core.engine.account.AccountResolver
 import com.impeesa.finance.core.engine.registry.InstitutionKind
 import com.impeesa.finance.core.engine.registry.SenderRegistry
 import com.impeesa.finance.core.model.Account
 import com.impeesa.finance.core.model.AccountType
 import com.impeesa.finance.core.model.Money
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.time.Clock
 
@@ -77,18 +79,94 @@ class AccountRepository internal constructor(
                     institution = institution?.institution,
                     name = institution?.institution ?: suggestion.senderCode,
                     mask = suggestion.mask,
-                    color = colorFor(suggestion.senderCode),
+                    color = colorFor(institution?.institution ?: suggestion.senderCode),
                     createdAt = now,
                     updatedAt = now,
                 ),
             )
-            capture.insertIdentifier(AccountIdentifierEntity(accountId = accountId, senderCode = suggestion.senderCode, mask = suggestion.mask))
-            database.transactionDao().backfillAccount(accountId, suggestion.senderCode, suggestion.mask)
-            capture.deleteSuggestion(id)
+            // The bank's other sender headers (HDFCBK, HDFCBN…) are the same account.
+            val sameBank = senders.codesOf(suggestion.senderCode)
+            sameBank.forEach { code ->
+                capture.insertIdentifier(AccountIdentifierEntity(accountId = accountId, senderCode = code, mask = suggestion.mask))
+                database.transactionDao().backfillAccount(accountId, code, suggestion.mask)
+            }
+            capture.allSuggestions()
+                .filter { it.id == id || (it.senderCode in sameBank && AccountResolver.masksMatch(it.mask, suggestion.mask)) }
+                .forEach { capture.deleteSuggestion(it.id) }
             accountId
         }
         added?.let { replayLedger(it) }
         return added
+    }
+
+    /**
+     * Folds accounts that are really one into the oldest of them: same type, same bank and the same
+     * last digits. Earlier versions made one per bank sender header (HDFCBK and HDFCBN). Returns how
+     * many were merged away.
+     */
+    suspend fun mergeDuplicates(): Int {
+        val database = requireNotNull(db)
+        return database.withTransaction {
+            val kept = mutableListOf<AccountEntity>()
+            var merged = 0
+            for (account in dao.activeAccounts().sortedBy { it.id }) {
+                val keeper = kept.firstOrNull { sameAccount(it, account) }
+                if (keeper == null) {
+                    kept += account
+                } else {
+                    mergeLocked(account, keeper)
+                    merged++
+                }
+            }
+            merged
+        }
+    }
+
+    /** Moves everything of [fromId] onto [intoId] and removes [fromId]. For accounts the user knows are the same. */
+    suspend fun merge(fromId: Long, intoId: Long) {
+        require(fromId != intoId) { "Pick a different account" }
+        requireNotNull(db).withTransaction {
+            val from = dao.getById(fromId) ?: return@withTransaction
+            val into = dao.getById(intoId) ?: return@withTransaction
+            mergeLocked(from, into)
+        }
+    }
+
+    /** Active accounts [account] could be merged into: same type, not itself. */
+    suspend fun mergeTargets(account: Long): List<Account> {
+        val type = dao.getById(account)?.type ?: return emptyList()
+        return observeAccounts().first().filter { it.id != account && it.type == type }
+    }
+
+    private fun sameAccount(a: AccountEntity, b: AccountEntity): Boolean {
+        if (a.type != b.type || a.type == AccountType.CASH) return false
+        val maskA = a.mask ?: return false
+        val maskB = b.mask ?: return false
+        val bankA = (a.institution ?: a.name).trim().lowercase()
+        val bankB = (b.institution ?: b.name).trim().lowercase()
+        return bankA == bankB && AccountResolver.masksMatch(maskA, maskB)
+    }
+
+    private suspend fun mergeLocked(from: AccountEntity, into: AccountEntity) {
+        dao.moveTransactions(from.id, into.id)
+        dao.moveIdentifiers(from.id, into.id)
+        dao.moveRules(from.id, into.id)
+        dao.moveSnapshots(from.id, into.id)
+        dao.moveStatements(from.id, into.id)
+        dao.deleteStatementsOf(from.id)
+        // Keep what the user set on either.
+        dao.update(
+            into.copy(
+                openingBalancePaise = into.openingBalancePaise.takeIf { it != 0L } ?: from.openingBalancePaise,
+                creditLimitPaise = into.creditLimitPaise ?: from.creditLimitPaise,
+                statementDay = into.statementDay ?: from.statementDay,
+                dueDay = into.dueDay ?: from.dueDay,
+                lowBalancePaise = into.lowBalancePaise ?: from.lowBalancePaise,
+                institution = into.institution ?: from.institution,
+                updatedAt = clock.millis(),
+            ),
+        )
+        dao.delete(from.id)
     }
 
     suspend fun dismissSuggestion(id: Long) {

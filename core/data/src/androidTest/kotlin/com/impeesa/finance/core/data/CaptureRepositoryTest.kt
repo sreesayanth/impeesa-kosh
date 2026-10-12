@@ -12,6 +12,7 @@ import com.impeesa.finance.core.engine.MessageSource
 import com.impeesa.finance.core.engine.classify.MessageType
 import com.impeesa.finance.core.model.AccountType
 import com.impeesa.finance.core.model.DateKey
+import com.impeesa.finance.core.model.EntryKind
 import com.impeesa.finance.core.model.Money
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -23,6 +24,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.YearMonth
 import java.time.ZoneId
 
@@ -198,6 +200,37 @@ class CaptureRepositoryTest {
         val accountId = accounts.acceptSuggestion(accounts.observeSuggestions().first().single().id)!!
         val hdfc = accounts.observeAccounts().first().single { it.id == accountId }
         assertEquals(Money(1_79_350_00), hdfc.balance)
+    }
+
+    @Test
+    fun aBanksTwoSenderHeadersMakeOneAccount() = runTest {
+        capture.ingest(swiggy)
+        capture.ingest(sms("JD-HDFCBN", "Rs.120.00 debited from A/c XX4821 to VPA rapido@ybl on 11-10-26. UPI Ref 628455667788.", at = "2026-10-11T08:10:00Z"))
+        val suggestion = accounts.observeSuggestions().first().single()
+        assertEquals(2, suggestion.sightings)
+
+        val id = accounts.acceptSuggestion(suggestion.id)!!
+        assertEquals(Money(-60_600), accounts.observeAccounts().first().single { it.id == id }.balance)
+        // Later messages from either header land on it.
+        capture.ingest(sms("AD-HDFCBN", "Rs.80.00 debited from A/c XX4821 to VPA chai@ybl on 11-10-26. UPI Ref 628455667799.", at = "2026-10-11T09:00:00Z"))
+        assertEquals(1, accounts.observeAccounts().first().count { it.type == AccountType.BANK })
+        assertTrue(accounts.observeSuggestions().first().isEmpty())
+    }
+
+    @Test
+    fun duplicateAccountsAreMergedIntoTheOldest() = runTest {
+        val first = accounts.save(AccountDraft(type = AccountType.BANK, name = "HDFC Bank", mask = "0874"))
+        val second = accounts.save(AccountDraft(type = AccountType.BANK, name = "HDFC Bank", mask = "0874", openingBalance = Money(10_000_00)))
+        accounts.save(AccountDraft(type = AccountType.BANK, name = "HDFC Bank", mask = "1111"))
+        transactions.save(TransactionDraft(kind = EntryKind.EXPENSE, amount = Money(500_00), accountId = second, occurredAt = LocalDateTime.of(2026, 10, 11, 10, 0)))
+
+        assertEquals(1, accounts.mergeDuplicates())
+        val banks = accounts.observeAccounts().first().filter { it.type == AccountType.BANK }
+        assertEquals(2, banks.size)
+        val merged = banks.single { it.mask == "0874" }
+        assertEquals(first, merged.id)
+        assertEquals(Money(9_500_00), merged.balance)
+        assertEquals(0, accounts.mergeDuplicates())
     }
 
     @Test

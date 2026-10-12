@@ -198,7 +198,7 @@ fun SmsPermissionScreen(onGranted: () -> Unit, onSkip: () -> Unit) {
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
                 .clickable(role = Role.Button) {
-                    container.prefs.onboardingDone = true
+                    container.prefs.finishOnboarding()
                     onSkip()
                 }
                 .padding(14.dp),

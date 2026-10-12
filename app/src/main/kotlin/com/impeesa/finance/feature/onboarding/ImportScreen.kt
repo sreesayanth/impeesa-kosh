@@ -82,7 +82,7 @@ fun ImportScreen(onDone: () -> Unit, onReview: () -> Unit) {
     val progress by progressFlow.collectAsStateWithLifecycle(ImportProgress())
 
     fun finish(next: () -> Unit) {
-        container.prefs.onboardingDone = true
+        container.prefs.finishOnboarding()
         next()
     }
 

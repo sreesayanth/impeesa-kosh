@@ -80,6 +80,30 @@ interface AccountDao {
 
     @Query("SELECT $BALANCE_EXPR FROM accounts a $LATEST_SNAPSHOT_JOIN WHERE a.id = :id")
     suspend fun balanceOf(id: Long): Long?
+
+    // ------------------------------------------------------------ merging duplicates
+
+    @Query("UPDATE transactions SET account_id = :into WHERE account_id = :from")
+    suspend fun moveTransactions(from: Long, into: Long)
+
+    @Query("UPDATE account_identifiers SET account_id = :into WHERE account_id = :from")
+    suspend fun moveIdentifiers(from: Long, into: Long)
+
+    @Query("UPDATE rules SET account_id = :into WHERE account_id = :from")
+    suspend fun moveRules(from: Long, into: Long)
+
+    @Query("UPDATE balance_snapshots SET account_id = :into WHERE account_id = :from")
+    suspend fun moveSnapshots(from: Long, into: Long)
+
+    /** A bill both accounts have (same due date) stays once, on the account kept. */
+    @Query("UPDATE OR IGNORE card_statements SET account_id = :into WHERE account_id = :from")
+    suspend fun moveStatements(from: Long, into: Long)
+
+    @Query("DELETE FROM card_statements WHERE account_id = :id")
+    suspend fun deleteStatementsOf(id: Long)
+
+    @Query("DELETE FROM accounts WHERE id = :id")
+    suspend fun delete(id: Long)
 }
 
 @Dao

@@ -21,8 +21,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -44,12 +47,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.impeesa.finance.LocalAppContainer
+import com.impeesa.finance.core.model.Currencies
 import com.impeesa.finance.core.ui.component.ImpeesaTextField
 import com.impeesa.finance.core.ui.component.PrimaryButton
 import com.impeesa.finance.core.ui.component.ScreenHeader
 import com.impeesa.finance.core.ui.component.SectionLabel
 import com.impeesa.finance.core.ui.theme.ImpeesaTheme
 import com.impeesa.finance.feature.onboarding.OnboardingScaffold
+import com.impeesa.finance.feature.settings.CurrencyRow
+import kotlinx.coroutines.launch
 import com.impeesa.finance.core.ui.R as UiR
 
 /** Avatar colours, in picker order. The stored index points into this list. */
@@ -126,10 +132,21 @@ private fun ProfileForm(name: String, onName: (String) -> Unit, colorIndex: Int,
 /** Onboarding step: "What should we call you?" Skippable; the name only personalises the app. */
 @Composable
 fun ProfileSetupScreen(onContinue: () -> Unit) {
-    val prefs = LocalAppContainer.current.prefs
+    val container = LocalAppContainer.current
+    val prefs = container.prefs
     val colors = ImpeesaTheme.colors
     var name by rememberSaveable { mutableStateOf(prefs.profile.value.name) }
     var colorIndex by rememberSaveable { mutableIntStateOf(prefs.profile.value.colorIndex) }
+    var currencyCode by rememberSaveable { mutableStateOf(prefs.setupCurrency ?: prefs.money.value.currency.code) }
+    var choosingCurrency by rememberSaveable { mutableStateOf(false) }
+    val currency = Currencies.byCode(currencyCode)
+
+    fun next() {
+        prefs.setupCurrency = currencyCode
+        // Capture needs it before the inbox import; the display follows at the end of setup.
+        container.ioScope.launch { container.captureRepository.homeCurrency = currencyCode }
+        onContinue()
+    }
 
     OnboardingScaffold(step = 1) {
         Text(
@@ -144,13 +161,41 @@ fun ProfileSetupScreen(onContinue: () -> Unit) {
             color = colors.textSecondary,
         )
         ProfileForm(name, { name = it }, colorIndex, { colorIndex = it })
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionLabel("Currency")
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(colors.card)
+                    .border(1.dp, colors.line, RoundedCornerShape(16.dp))
+                    .clickable(role = Role.Button, onClickLabel = "Change currency") { choosingCurrency = true }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Box(Modifier.widthIn(min = 40.dp).clip(RoundedCornerShape(10.dp)).background(colors.raised).padding(8.dp), contentAlignment = Alignment.Center) {
+                    Text(currency.symbol.trim(), style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(currency.name, style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
+                    Text(currency.code, style = ImpeesaTheme.type.caption, color = colors.textTertiary)
+                }
+                Text("Change", style = ImpeesaTheme.type.label, color = colors.lime)
+            }
+            Text(
+                "Kosh reads Indian bank SMS in rupees. You can change this any time in Settings.",
+                style = ImpeesaTheme.type.caption,
+                color = colors.textTertiary,
+            )
+        }
         Spacer(Modifier.height(4.dp))
         PrimaryButton(
             text = "Continue",
             enabled = Profile.cleanName(name).isNotEmpty(),
             onClick = {
                 prefs.saveProfile(name, colorIndex)
-                onContinue()
+                next()
             },
         )
         Text(
@@ -161,8 +206,28 @@ fun ProfileSetupScreen(onContinue: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .clickable(role = Role.Button, onClick = onContinue)
+                .clickable(role = Role.Button) { next() }
                 .padding(14.dp),
+        )
+    }
+
+    if (choosingCurrency) {
+        AlertDialog(
+            onDismissRequest = { choosingCurrency = false },
+            title = { Text("Currency") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    Currencies.ALL.forEach { option ->
+                        CurrencyRow(option, selected = option.code == currencyCode) {
+                            currencyCode = option.code
+                            choosingCurrency = false
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { choosingCurrency = false }) { Text("Cancel") } },
+            containerColor = colors.card,
         )
     }
 }

@@ -30,6 +30,7 @@ import com.impeesa.finance.core.engine.merchant.MerchantSource
 import com.impeesa.finance.core.engine.registry.AppKind
 import com.impeesa.finance.core.engine.registry.AppRegistry
 import com.impeesa.finance.core.engine.registry.PaymentApp
+import com.impeesa.finance.core.engine.registry.SenderRegistry
 import com.impeesa.finance.core.model.AccountType
 import com.impeesa.finance.core.model.Channel
 import com.impeesa.finance.core.model.DateKey
@@ -96,6 +97,7 @@ class CaptureRepository internal constructor(
 ) {
     private val engine by lazy(engineProvider)
     private val apps by lazy { AppRegistry.load() }
+    private val senders by lazy { SenderRegistry.load() }
     private val inbox = SmsInboxReader(context)
     private val prefs = context.getSharedPreferences("capture", Context.MODE_PRIVATE)
     private val writer = Mutex()
@@ -218,8 +220,10 @@ class CaptureRepository internal constructor(
             val context = loadContext()
             val account = context.accounts.firstOrNull { it.id == accountId } ?: return@withTransaction
             if (account.senderCodes.isEmpty()) return@withTransaction
+            // Messages from any of the bank's sender headers, not only the one the account was added from.
+            val codes = account.senderCodes.flatMap(senders::codesOf).toSet()
             for (raw in capture.smsWithBody()) {
-                if (account.senderCodes.none { raw.sender.contains(it, ignoreCase = true) }) continue
+                if (codes.none { raw.sender.contains(it, ignoreCase = true) }) continue
                 val envelope = MessageEnvelope(
                     source = MessageSource.SMS,
                     sender = raw.sender,
@@ -238,6 +242,20 @@ class CaptureRepository internal constructor(
                 }
             }
         }
+    }
+
+    /**
+     * Once per install: replays kept messages for accounts that have never had a balance from the bank.
+     * Accounts added before 0.9.2 missed the "Avl Bal" in messages that came before them.
+     */
+    suspend fun replayMissingLedgers() {
+        if (prefs.getBoolean(KEY_LEDGER_REPLAYED, false)) return
+        val ledger = db.ledgerDao()
+        db.accountDao().activeAccounts()
+            .filter { it.type == AccountType.BANK || it.type == AccountType.CARD }
+            .filter { ledger.latestSnapshotAt(it.id) == null }
+            .forEach { replayLedger(it.id) }
+        prefs.edit().putBoolean(KEY_LEDGER_REPLAYED, true).apply()
     }
 
     fun observeStats(month: Int): Flow<CaptureStats> = capture.observeStats(month).map { rows ->
@@ -698,7 +716,10 @@ class CaptureRepository internal constructor(
     private suspend fun rememberSuggestion(match: AccountMatch.Suggested, analysis: Analysis) {
         val sender = match.senderEntity ?: return
         val now = clock.millis()
+        // HDFCBK and HDFCBN texting about ••0874 is one account, not two suggestions.
+        val sameBank = senders.codesOf(sender)
         val existing = capture.suggestion(sender, match.mask)
+            ?: capture.allSuggestions().firstOrNull { it.senderCode in sameBank && AccountResolver.masksMatch(it.mask, match.mask) }
         val looksLikeCard = analysis.channel == Channel.CARD
         if (existing == null) {
             capture.insertSuggestion(
@@ -748,6 +769,7 @@ class CaptureRepository internal constructor(
         private const val KEY_HOME_CURRENCY = "home_currency"
         private const val DELETED_KEEP_DAYS = 30L
         private const val KEY_WATERMARK = "inbox_watermark"
+        private const val KEY_LEDGER_REPLAYED = "ledger_replayed_v1"
         private const val KEY_APP_PREFIX = "app_enabled:"
         private const val PARSER_VERSION = 1
         private const val PROGRESS_EVERY = 50

@@ -19,11 +19,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +49,7 @@ import com.impeesa.finance.core.data.AccountDraft
 import com.impeesa.finance.core.data.AccountSuggestion
 import com.impeesa.finance.core.data.AccountRepository
 import com.impeesa.finance.core.model.MoneyFormat
+import com.impeesa.finance.core.model.Account
 import com.impeesa.finance.core.model.AccountType
 import com.impeesa.finance.core.model.AmountInput
 import com.impeesa.finance.core.model.Money
@@ -181,15 +188,34 @@ class AccountFormViewModel(
             doneChannel.send(Unit)
         }
     }
+
+    private val mergedChannel = Channel<Long>(Channel.BUFFERED)
+    /** The account this one was merged into; this one no longer exists. */
+    val merged: Flow<Long> = mergedChannel.receiveAsFlow()
+
+    suspend fun mergeTargets(): List<Account> = id?.let { repository.mergeTargets(it) }.orEmpty()
+
+    fun mergeInto(target: Account) {
+        val accountId = id ?: return
+        viewModelScope.launch {
+            repository.merge(accountId, target.id)
+            undo.post(UndoEvent("Merged into ${target.displayName}"))
+            mergedChannel.send(target.id)
+        }
+    }
 }
 
 @Composable
-fun AccountFormScreen(id: Long?, onBack: () -> Unit) {
+fun AccountFormScreen(id: Long?, onBack: () -> Unit, onMerged: (Long) -> Unit) {
     val container = LocalAppContainer.current
     val viewModel = viewModel { AccountFormViewModel(id, container.accountRepository, container.undo) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(viewModel) { viewModel.done.collect { onBack() } }
+    LaunchedEffect(viewModel) { viewModel.merged.collect(onMerged) }
     val colors = ImpeesaTheme.colors
+    var mergeChoices by remember { mutableStateOf<List<Account>?>(null) }
+    var mergeTarget by remember { mutableStateOf<Account?>(null) }
+    val scope = rememberCoroutineScope()
 
     Column(
         Modifier
@@ -349,6 +375,77 @@ fun AccountFormScreen(id: Long?, onBack: () -> Unit) {
                 style = ImpeesaTheme.type.caption,
                 color = colors.textTertiary,
             )
+            if (state.type != AccountType.CASH) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(colors.card)
+                        .clickable(role = Role.Button) { scope.launch { mergeChoices = viewModel.mergeTargets() } },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("Merge with another account", style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
+                }
+                Text(
+                    "Showing up twice? Merge moves this account's transactions, bills and balance history into the other one.",
+                    style = ImpeesaTheme.type.caption,
+                    color = colors.textTertiary,
+                )
+            }
         }
+    }
+
+    mergeChoices?.let { choices ->
+        AlertDialog(
+            onDismissRequest = { mergeChoices = null },
+            title = { Text("Merge into…") },
+            text = {
+                if (choices.isEmpty()) {
+                    Text("There's no other account of this type to merge with.")
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        choices.forEach { account ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable(role = Role.Button) {
+                                        mergeChoices = null
+                                        mergeTarget = account
+                                    }
+                                    .padding(vertical = 12.dp, horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(account.displayName, style = ImpeesaTheme.type.body, color = colors.textPrimary, modifier = Modifier.weight(1f))
+                                Text(MoneyFormat.format(account.balance), style = ImpeesaTheme.type.caption, color = colors.textSecondary)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { mergeChoices = null }) { Text("Cancel") } },
+            containerColor = colors.card,
+        )
+    }
+
+    mergeTarget?.let { target ->
+        AlertDialog(
+            onDismissRequest = { mergeTarget = null },
+            title = { Text("Merge into ${target.displayName}?") },
+            text = {
+                val self = state.name + state.mask.takeIf { it.isNotBlank() }?.let { " ••$it" }.orEmpty()
+                Text("“$self” will be removed and everything on it moves to ${target.displayName}. This can't be undone.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    mergeTarget = null
+                    viewModel.mergeInto(target)
+                }) { Text("Merge", color = colors.lime) }
+            },
+            dismissButton = { TextButton(onClick = { mergeTarget = null }) { Text("Cancel") } },
+            containerColor = colors.card,
+        )
     }
 }

@@ -8,9 +8,9 @@
 
 **A private personal-finance app for Android that tracks your money from bank SMS and UPI alerts, automatically and entirely on your phone.**
 
-[![Download APK](https://img.shields.io/badge/Download-APK%20v0.9.2-C5F26B?style=for-the-badge&logo=android&logoColor=0B0D10&labelColor=0B0D10)](https://github.com/sreesayanth/kosh/raw/main/release/kosh-0.9.2.apk)
+[![Download APK](https://img.shields.io/badge/Download-APK%20v0.9.3-C5F26B?style=for-the-badge&logo=android&logoColor=0B0D10&labelColor=0B0D10)](https://github.com/sreesayanth/kosh/raw/main/release/kosh-0.9.3.apk)
 
-![Version](https://img.shields.io/badge/version-0.9.2-C5F26B?labelColor=15181D)
+![Version](https://img.shields.io/badge/version-0.9.3-C5F26B?labelColor=15181D)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white&labelColor=15181D)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white&labelColor=15181D)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=jetpackcompose&logoColor=white&labelColor=15181D)
@@ -35,20 +35,20 @@ The app has **no internet permission at all**. The build fails if any library tr
 <tr>
 <td width="60%">
 
-### Kosh 0.9.2
+### Kosh 0.9.3
 
 | | |
 |---|---|
-| **File** | [`kosh-0.9.2.apk`](https://github.com/sreesayanth/kosh/raw/main/release/kosh-0.9.2.apk) |
-| **Size** | 12.2 MB |
+| **File** | [`kosh-0.9.3.apk`](https://github.com/sreesayanth/kosh/raw/main/release/kosh-0.9.3.apk) |
+| **Size** | 12.3 MB |
 | **Requires** | Android 8.0 (API 26) or newer, ARM phone |
 | **Package** | `com.impeesa.finance` |
-| **SHA-256** | `1020C924233AD7739B3F1D3293D8B8DD7B170C3CD032E11A7C15FDD8CE4E76C7` |
+| **SHA-256** | `909FE8083F29FE18B313B7F13A791018E4E1D647AE9040990BCD7F60EC1296B9` |
 
 </td>
 <td width="40%" align="center">
 
-<a href="https://github.com/sreesayanth/kosh/raw/main/release/kosh-0.9.2.apk"><img src="https://img.shields.io/badge/⬇%20Download%20APK-0.9.2-C5F26B?style=for-the-badge&labelColor=0B0D10" alt="Download APK"></a>
+<a href="https://github.com/sreesayanth/kosh/raw/main/release/kosh-0.9.3.apk"><img src="https://img.shields.io/badge/⬇%20Download%20APK-0.9.3-C5F26B?style=for-the-badge&labelColor=0B0D10" alt="Download APK"></a>
 
 <sub>Or browse the <a href="release/">release folder</a></sub>
 
@@ -99,6 +99,7 @@ The app has **no internet permission at all**. The build fails if any library tr
 - Reads bank, card and wallet **SMS** from 39 known Indian sender codes, live as messages arrive. On first run it can import the last 3, 6 or 12 months.
 - Reads **payment-app notifications** from Google Pay, PhonePe, Paytm, CRED, Amazon Pay and others, but only from apps you switch on.
 - **De-duplicates across sources.** When a bank SMS and a UPI app alert describe the same payment, they merge into one transaction: the SMS adds the account and reference, the app adds the clean merchant name.
+- **No duplicate accounts.** Banks text from more than one sender ID (HDFCBK and HDFCBN, AXISBK and AXISBN); Kosh treats them as the same bank, and anything that does show up twice can be merged from Edit account.
 - **Links related money movements:** card bill payments, transfers between your own accounts, wallet top-ups, ATM withdrawals (which move money into cash), refunds (which inherit the original purchase's category) and reversals (which cancel a failed debit).
 - Ignores OTPs, promotions, collect requests and failed payments.
 - Uncertain items go to a **Review queue** instead of being logged silently.
@@ -114,7 +115,7 @@ The app has **no internet permission at all**. The build fails if any library tr
 - A monthly budget and per-category budgets, with a pace marker, a warn-at threshold and optional carry-over. Suggestions come from your last three months.
 - **Safe to spend per day** on Home: what's left, minus bills Kosh expects before the period ends, divided by the days left.
 - Your budget month can start on your salary day; Kosh spots the salary and suggests it.
-- **Insights**: week, month or year donut by category, a like-for-like comparison ("↓ 12% vs last"), six periods of cash flow and your savings rate.
+- **Insights**: week, month, year or any custom date range, as a donut by category, with a like-for-like comparison ("↓ 12% vs last"), six periods of cash flow and your savings rate.
 - **Habits**: a daily-spend calendar, weekday and weekend patterns, late-night food orders, top merchants, and subscriptions and bills found from repeating payments, with next dates and price changes.
 - Short insights such as "Friday was 3× your usual day" use fixed templates with your numbers filled in. Nothing is generated, and you can dismiss any of them.
 
@@ -129,7 +130,7 @@ The app has **no internet permission at all**. The build fails if any library tr
 - Quick manual entry for cash, plus income and transfers.
 - Activity with search, filters and day totals; edit, delete and undo.
 - A simple on-device profile: set your name and avatar colour during onboarding, and change it any time from the avatar on Home.
-- **Currency & format:** rupees with Indian grouping (₹1,84,350) by default, or pick from 12 currencies (US dollar, euro, pound, dirham, riyal and more) and Indian or international digit grouping. Amounts are shown in your choice, never converted.
+- **Currency & format:** rupees with Indian grouping (₹1,84,350) by default, or pick from 12 currencies (US dollar, euro, pound, dirham, riyal and more) during setup or later in Settings, and Indian or international digit grouping. Amounts are shown in your choice, never converted.
 - Quick access: long-press the icon for *Add spend*, *Review* or *Insights*, or add the *Add spend* Quick Settings tile.
 
 **Detection engine**

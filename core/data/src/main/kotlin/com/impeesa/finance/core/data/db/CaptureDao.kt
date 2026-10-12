@@ -47,6 +47,10 @@ interface CaptureDao {
     @Query("SELECT * FROM account_suggestions WHERE sender_code = :sender AND mask = :mask LIMIT 1")
     suspend fun suggestion(sender: String, mask: String): AccountSuggestionEntity?
 
+    /** Including dismissed ones, so a bank's other sender header doesn't bring a dismissed account back. */
+    @Query("SELECT * FROM account_suggestions")
+    suspend fun allSuggestions(): List<AccountSuggestionEntity>
+
     @Query("SELECT * FROM account_suggestions WHERE id = :id")
     suspend fun suggestionById(id: Long): AccountSuggestionEntity?
 

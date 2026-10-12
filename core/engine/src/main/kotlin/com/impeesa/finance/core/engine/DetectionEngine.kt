@@ -92,7 +92,7 @@ class DetectionEngine(
             confidence = score,
             templateId = template?.spec?.id,
             senderEntity = gate.entity,
-            account = AccountResolver.resolve(gate.entity, mask, context.accounts),
+            account = AccountResolver.resolve(gate.entity, mask, context.accounts, gate.entity?.let(senders::codesOf).orEmpty()),
             statement = if (type == MessageType.STATEMENT) StatementExtractor.extract(text, received) else null,
         )
     }

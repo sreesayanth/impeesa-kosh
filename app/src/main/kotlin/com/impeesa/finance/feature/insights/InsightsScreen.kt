@@ -18,11 +18,20 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,7 +77,9 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
@@ -78,6 +89,8 @@ import kotlin.math.abs
 data class InsightsUiState(
     val loading: Boolean = true,
     val kind: PeriodKind = PeriodKind.MONTH,
+    /** A range the user picked; [kind] is ignored while it's set. */
+    val custom: Period? = null,
     val rangeLabel: String = "",
     val total: Money = Money.ZERO,
     /** Like-for-like change vs the previous period, as a fraction; null without a previous period. */
@@ -93,16 +106,18 @@ class InsightsViewModel(
     prefs: AppPrefs,
     private val clock: Clock,
 ) : ViewModel() {
-    private val today = LocalDate.now(clock)
+    val today: LocalDate = LocalDate.now(clock)
     private val kind = MutableStateFlow(PeriodKind.MONTH)
+    private val custom = MutableStateFlow<Period?>(null)
 
     private val overview = overviewSource.budgets(today, prefs.monthStartDay).shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
     private val insights = overviewSource.insights(today, overview, prefs.dismissedInsights) { clock.millis() }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val state: StateFlow<InsightsUiState> = combine(kind, prefs.monthStartDay) { k, s -> k to s }.flatMapLatest { (k, startDay) ->
-        val period = Periods.of(k, today, startDay)
-        val previous = Periods.of(k, today, startDay, -1)
+    val state: StateFlow<InsightsUiState> = combine(kind, custom, prefs.monthStartDay) { k, c, s -> Triple(k, c, s) }.flatMapLatest { (k, range, startDay) ->
+        val period = range ?: Periods.of(k, today, startDay)
+        // A custom range is compared with the same number of days just before it.
+        val previous = range?.let { Period(it.start.minusDays(it.days.toLong()), it.start.minusDays(1)) } ?: Periods.of(k, today, startDay, -1)
         val cashPeriods = (5 downTo 0).map { Periods.budget(today, startDay, -it) }
         val from = minOf(previous.start, cashPeriods.first().start)
         combine(
@@ -116,7 +131,8 @@ class InsightsViewModel(
             InsightsUiState(
                 loading = false,
                 kind = k,
-                rangeLabel = rangeLabel(k, period, startDay),
+                custom = range,
+                rangeLabel = if (range != null) customLabel(range) else rangeLabel(k, period, startDay),
                 total = current,
                 change = if (before.paise > 0) (current.paise - before.paise).toDouble() / before.paise else null,
                 categories = totals,
@@ -127,7 +143,12 @@ class InsightsViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), InsightsUiState())
 
     fun pick(k: PeriodKind) {
+        custom.value = null
         kind.value = k
+    }
+
+    fun pickRange(start: LocalDate, end: LocalDate) {
+        custom.value = Period(start, minOf(end, today))
     }
 
     private fun rangeLabel(k: PeriodKind, period: Period, startDay: Int): String = when (k) {
@@ -136,8 +157,15 @@ class InsightsViewModel(
         PeriodKind.YEAR -> period.start.year.toString()
     }
 
+    private fun customLabel(range: Period): String {
+        // The year only when it isn't this year, to keep the chip short.
+        val format = if (range.start.year == today.year && range.end.year == today.year) SHORT else WITH_YEAR
+        return if (range.start == range.end) range.start.format(format) else "${range.start.format(format)} – ${range.end.format(format)}"
+    }
+
     private companion object {
         val SHORT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
+        val WITH_YEAR: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yy", Locale.ENGLISH)
     }
 }
 
@@ -147,6 +175,7 @@ fun InsightsScreen(onHabits: () -> Unit, onBudgets: () -> Unit) {
     val viewModel = viewModel { InsightsViewModel(container.analyticsRepository, container.moneyOverview, container.prefs, container.clock) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = ImpeesaTheme.colors
+    var picking by rememberSaveable { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(colors.ink).statusBarsPadding(),
@@ -160,12 +189,19 @@ fun InsightsScreen(onHabits: () -> Unit, onBudgets: () -> Unit) {
                     state.rangeLabel,
                     style = ImpeesaTheme.type.label,
                     color = colors.textPrimary,
-                    modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(colors.card).border(1.dp, colors.line, RoundedCornerShape(20.dp)).padding(horizontal = 14.dp, vertical = 10.dp),
+                    modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(colors.card).border(1.dp, colors.line, RoundedCornerShape(20.dp))
+                        // Tapping the dates is the quickest way to change a custom range.
+                        .clickable(role = Role.Button, onClickLabel = "Choose dates") { picking = true }
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
                 )
             }
         }
         item(key = "tabs") {
-            SegmentedControl(listOf("Week", "Month", "Year"), state.kind.ordinal, { viewModel.pick(PeriodKind.entries[it]) })
+            SegmentedControl(
+                listOf("Week", "Month", "Year", "Custom"),
+                if (state.custom != null) PeriodKind.entries.size else state.kind.ordinal,
+                { index -> if (index < PeriodKind.entries.size) viewModel.pick(PeriodKind.entries[index]) else picking = true },
+            )
         }
         if (state.loading) return@LazyColumn
 
@@ -186,6 +222,52 @@ fun InsightsScreen(onHabits: () -> Unit, onBudgets: () -> Unit) {
 
         item(key = "habits") { LinkCard("Your spending habits", "Daily calendar, patterns, subscriptions and top merchants", colors.shopping, onHabits) }
         item(key = "budgets") { LinkCard("Budgets", "Limits for the month and each category", colors.lime, onBudgets) }
+    }
+
+    if (picking) {
+        RangePicker(
+            initial = state.custom,
+            today = viewModel.today,
+            onPick = { start, end ->
+                picking = false
+                viewModel.pickRange(start, end)
+            },
+            onDismiss = { picking = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RangePicker(initial: Period?, today: LocalDate, onPick: (LocalDate, LocalDate) -> Unit, onDismiss: () -> Unit) {
+    fun LocalDate.utcMillis() = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    fun Long.toDate() = Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()
+    val todayEnd = today.plusDays(1).utcMillis()
+    val pickerState = rememberDateRangePickerState(
+        initialSelectedStartDateMillis = (initial?.start ?: today.withDayOfMonth(1)).utcMillis(),
+        initialSelectedEndDateMillis = (initial?.end ?: today).utcMillis(),
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis < todayEnd
+        },
+    )
+    val start = pickerState.selectedStartDateMillis
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            // One tapped day is a one-day range.
+            TextButton(enabled = start != null, onClick = {
+                val from = start?.toDate() ?: return@TextButton
+                onPick(from, pickerState.selectedEndDateMillis?.toDate() ?: from)
+            }) { Text("Show") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    ) {
+        DateRangePicker(
+            state = pickerState,
+            title = { Text("Choose dates", modifier = Modifier.padding(start = 24.dp, top = 16.dp)) },
+            showModeToggle = false,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 

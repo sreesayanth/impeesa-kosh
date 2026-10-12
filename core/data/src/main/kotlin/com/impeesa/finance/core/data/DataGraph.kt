@@ -34,10 +34,12 @@ class DataGraph(context: Context, clock: Clock) {
         CaptureRepository(appContext, database, DetectionEngine::withBundledData, clock)
     }
 
-    /** First-run data: default categories and a cash wallet. */
+    /** First-run data (default categories and a cash wallet), then repairs left by earlier versions. */
     suspend fun seed() {
         categoryRepository.ensureSeeded()
         accountRepository.ensureCashWallet()
+        accountRepository.mergeDuplicates()
+        captureRepository.replayMissingLedgers()
     }
 
     /**

@@ -120,7 +120,7 @@ fun CurrencyScreen(onBack: () -> Unit, onChanged: () -> Unit) {
 }
 
 @Composable
-private fun CurrencyRow(currency: Currency, selected: Boolean, onClick: () -> Unit) {
+internal fun CurrencyRow(currency: Currency, selected: Boolean, onClick: () -> Unit) {
     val colors = ImpeesaTheme.colors
     Row(
         Modifier.fillMaxWidth().selectable(selected = selected, role = Role.RadioButton, onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),

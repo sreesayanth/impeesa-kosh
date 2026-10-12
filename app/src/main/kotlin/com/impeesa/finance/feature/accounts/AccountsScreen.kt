@@ -221,7 +221,8 @@ private fun AccountRowItem(account: Account, onClick: () -> Unit) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(account.name, style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
                 val sub = when (account.type) {
-                    AccountType.CARD -> account.creditLimit?.let { "Limit " + MoneyFormat.format(it) } ?: "Credit card"
+                    // The digits tell two cards from the same bank apart.
+                    AccountType.CARD -> listOfNotNull(account.mask?.let { "••$it" }, account.creditLimit?.let { "Limit " + MoneyFormat.format(it) } ?: "Credit card").joinToString(" · ")
                     AccountType.CASH -> "Cash in hand"
                     else -> account.mask?.let { "••$it" } ?: account.type.name.lowercase().replaceFirstChar { it.uppercase() }
                 }

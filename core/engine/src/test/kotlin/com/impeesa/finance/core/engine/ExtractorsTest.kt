@@ -118,6 +118,15 @@ class ExtractorsTest {
     }
 
     @Test
+    fun `a bank's second sender header finds the same account`() {
+        val senders = com.impeesa.finance.core.engine.registry.SenderRegistry.load()
+        assertEquals(setOf("HDFCBK", "HDFCBN"), senders.codesOf("HDFCBN"))
+        // A Kotak card also ending 0874 must not make the HDFCBN message ambiguous.
+        val accounts = listOf(KnownAccount(1, "0874", setOf("HDFCBK")), KnownAccount(2, "0874", setOf("KOTAKB"), isCard = true))
+        assertEquals(AccountMatch.Matched(1), AccountResolver.resolve("HDFCBN", "0874", accounts, senders.codesOf("HDFCBN")))
+    }
+
+    @Test
     fun `engine never throws on junk`() {
         val engine = DetectionEngine.withBundledData()
         val junk = listOf("", " ", "₹", "Rs.", "Rs 99999999999999999999 debited", "\u0000\u0001", "x".repeat(5000))
