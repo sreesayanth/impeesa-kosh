@@ -33,6 +33,7 @@ class AppContainer(context: Context) {
     val transactionRepository get() = data.transactionRepository
     val reviewRepository get() = data.reviewRepository
     val captureRepository get() = data.captureRepository
+    val categorizationRepository get() = data.categorizationRepository
 
     val notifier = CaptureNotifier(appContext) { data.reviewRepository }
 

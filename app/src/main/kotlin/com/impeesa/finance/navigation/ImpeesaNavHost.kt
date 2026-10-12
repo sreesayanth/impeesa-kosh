@@ -62,6 +62,10 @@ import com.impeesa.finance.feature.onboarding.SmsPermissionScreen
 import com.impeesa.finance.feature.onboarding.WelcomeScreen
 import com.impeesa.finance.feature.profile.EditProfileScreen
 import com.impeesa.finance.feature.profile.ProfileSetupScreen
+import com.impeesa.finance.feature.rules.CategoryEditorScreen
+import com.impeesa.finance.feature.rules.RuleEditorScreen
+import com.impeesa.finance.feature.rules.RulesScreen
+import com.impeesa.finance.feature.settings.SettingsScreen
 import com.impeesa.finance.feature.review.ReviewScreen
 import com.impeesa.finance.feature.sources.SourcesScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -84,6 +88,10 @@ import com.impeesa.finance.core.ui.R as UiR
 @Serializable data object SourcesRoute
 @Serializable data object ProfileSetupRoute
 @Serializable data object EditProfileRoute
+@Serializable data object SettingsRoute
+@Serializable data object RulesRoute
+@Serializable data class RuleEditorRoute(val id: Long = 0L)
+@Serializable data class CategoryEditorRoute(val id: Long = 0L)
 
 private data class Tab(val route: Any, @StringRes val label: Int, @DrawableRes val icon: Int)
 
@@ -130,6 +138,30 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
             composable<WelcomeRoute> { WelcomeScreen(onStart = { navController.navigate(ProfileSetupRoute) }) }
             composable<ProfileSetupRoute> { ProfileSetupScreen(onContinue = { navController.navigate(SmsPermissionRoute) }) }
             composable<EditProfileRoute> { EditProfileScreen(onBack = { navController.popBackStack() }) }
+            composable<SettingsRoute> {
+                SettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    onProfile = { navController.navigate(EditProfileRoute) },
+                    onAutoCapture = { navController.navigate(SourcesRoute) },
+                    onRules = { navController.navigate(RulesRoute) },
+                    onAccounts = { navController.switchTab(AccountsRoute) },
+                )
+            }
+            composable<RulesRoute> {
+                RulesScreen(
+                    onBack = { navController.popBackStack() },
+                    onNewRule = { navController.navigate(RuleEditorRoute()) },
+                    onEditRule = { navController.navigate(RuleEditorRoute(it)) },
+                    onNewCategory = { navController.navigate(CategoryEditorRoute()) },
+                    onEditCategory = { navController.navigate(CategoryEditorRoute(it)) },
+                )
+            }
+            composable<RuleEditorRoute> { entry ->
+                RuleEditorScreen(ruleId = entry.toRoute<RuleEditorRoute>().id, onBack = { navController.popBackStack() })
+            }
+            composable<CategoryEditorRoute> { entry ->
+                CategoryEditorScreen(categoryId = entry.toRoute<CategoryEditorRoute>().id, onBack = { navController.popBackStack() })
+            }
             composable<SmsPermissionRoute> {
                 SmsPermissionScreen(
                     onGranted = {
@@ -167,6 +199,7 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
                     onReview = { navController.navigate(ReviewRoute) },
                     onEnableSms = { navController.navigate(SmsPermissionRoute) },
                     onAutoCapture = { navController.navigate(SourcesRoute) },
+                    onSettings = { navController.navigate(SettingsRoute) },
                     onProfile = { navController.navigate(EditProfileRoute) },
                 )
             }

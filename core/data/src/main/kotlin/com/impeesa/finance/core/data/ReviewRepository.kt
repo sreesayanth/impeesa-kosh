@@ -13,6 +13,7 @@ class ReviewRepository internal constructor(
     private val clock: Clock,
 ) {
     private val dao = db.transactionDao()
+    private val resolver = CategoryResolver(db, clock)
 
     fun observeQueue(): Flow<List<ReviewRow>> = dao.observeReviewQueue()
 
@@ -20,10 +21,17 @@ class ReviewRepository internal constructor(
 
     suspend fun count(): Int = dao.reviewCount()
 
-    /** Accepts a transaction, optionally with a corrected category. */
+    /**
+     * Accepts a transaction, optionally with a corrected category. Picking something other than
+     * the suggestion teaches the app about that merchant (§7.4).
+     */
     suspend fun confirm(id: Long, categoryId: Long?) = db.withTransaction {
         val now = clock.millis()
-        if (categoryId != null) dao.setCategory(id, categoryId, now)
+        val row = dao.getById(id)
+        if (categoryId != null && row != null && categoryId != row.categoryId) {
+            dao.setCategory(id, categoryId, now)
+            resolver.recordCorrection(row.merchantKey, row.categoryId, categoryId, id)
+        }
         dao.setStatus(listOf(id), TxnStatus.CONFIRMED.name, now)
     }
 

@@ -128,10 +128,13 @@ class ReviewViewModel(
                 "FOREIGN_CURRENCY" -> "Foreign currency — check the amount in rupees"
                 "FAILED_BUT_DEBITED" -> "Debited, but the bank says it failed"
                 "UNKNOWN_SENDER" -> "From a sender we don't know yet"
+                "AMBIGUOUS_CATEGORY" -> "You've sorted ${counterparty ?: "this merchant"} in different ways — pick the right one"
+                "ASK_CATEGORY" -> "Your rule asks you to choose a category each time"
                 else -> "We weren't sure — please check"
             },
             message = rawBody,
-            categories = categories,
+            // The suggestion first, so an ambiguous merchant's likeliest category is one tap away.
+            categories = categories.sortedByDescending { it.id == categoryId },
             selectedCategoryId = picked ?: categoryId ?: categories.firstOrNull()?.id.takeIf { direction != Direction.CREDIT },
         )
     }

@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -52,9 +53,11 @@ import com.impeesa.finance.core.ui.theme.ImpeesaTheme
 fun DetailScreen(id: Long, onBack: () -> Unit, onEdit: (Long) -> Unit, onReview: () -> Unit) {
     val container = LocalAppContainer.current
     val viewModel = viewModel {
-        DetailViewModel(id, container.transactionRepository, container.accountRepository, container.categoryRepository, container.captureRepository, container.undo, container.clock)
+        DetailViewModel(id, container.transactionRepository, container.accountRepository, container.categoryRepository, container.categorizationRepository, container.captureRepository, container.undo, container.clock)
     }
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val learn by viewModel.learn.collectAsStateWithLifecycle()
+    var pickCategory by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(viewModel) { viewModel.close.collect { onBack() } }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     val colors = ImpeesaTheme.colors
@@ -114,14 +117,39 @@ fun DetailScreen(id: Long, onBack: () -> Unit, onEdit: (Long) -> Unit, onReview:
         SurfaceCard(padding = 16.dp) {
             state.rows.forEachIndexed { index, row ->
                 if (index > 0) HorizontalDivider(color = colors.raised)
-                Row(Modifier.fillMaxWidth().padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(row.label, style = ImpeesaTheme.type.body, color = colors.textSecondary, modifier = Modifier.weight(1f))
-                    if (row.dotColor != null) {
-                        Box(Modifier.padding(end = 8.dp).size(8.dp).clip(CircleShape).background(Color(row.dotColor)))
+                val rowModifier = if (row.opensCategory) {
+                    Modifier.clip(RoundedCornerShape(12.dp)).clickable(role = Role.Button, onClickLabel = "Change category") { pickCategory = true }
+                } else {
+                    Modifier
+                }
+                Column(rowModifier.fillMaxWidth().padding(vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(row.label, style = ImpeesaTheme.type.body, color = colors.textSecondary, modifier = Modifier.weight(1f))
+                        if (row.dotColor != null) {
+                            Box(Modifier.padding(end = 8.dp).size(8.dp).clip(CircleShape).background(Color(row.dotColor)))
+                        }
+                        Text(row.value, style = ImpeesaTheme.type.bodyStrong, color = if (row.opensCategory && row.dotColor == null) colors.lime else colors.textPrimary)
+                        if (row.opensCategory) {
+                            Icon(
+                                painterResource(UiR.drawable.ic_back),
+                                contentDescription = null,
+                                tint = colors.textTertiary,
+                                modifier = Modifier.padding(start = 6.dp).size(16.dp).rotate(180f),
+                            )
+                        }
                     }
-                    Text(row.value, style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
+                    row.hint?.let { Text(it, style = ImpeesaTheme.type.caption, color = colors.textTertiary) }
                 }
             }
+        }
+
+        learn?.let { prompt ->
+            LearnCard(
+                prompt = prompt,
+                onAlways = viewModel::setAlwaysSort,
+                onApply = viewModel::applyToEarlier,
+                onDismiss = viewModel::dismissLearn,
+            )
         }
 
         state.originalMessage?.let { message ->
@@ -182,6 +210,18 @@ fun DetailScreen(id: Long, onBack: () -> Unit, onEdit: (Long) -> Unit, onReview:
             Icon(painterResource(UiR.drawable.ic_trash), contentDescription = null, tint = colors.coral, modifier = Modifier.size(18.dp))
             Text("  Delete", style = ImpeesaTheme.type.bodyStrong, color = colors.coral)
         }
+    }
+
+    if (pickCategory) {
+        CategorySheet(
+            categories = state.categories,
+            selectedId = state.categoryId,
+            onPick = { id ->
+                pickCategory = false
+                viewModel.changeCategory(id)
+            },
+            onDismiss = { pickCategory = false },
+        )
     }
 
     if (confirmDelete) {

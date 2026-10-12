@@ -40,7 +40,7 @@ class CaptureRepositoryTest {
     fun setUp() = runTest {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         db = Room.inMemoryDatabaseBuilder(context, ImpeesaDatabase::class.java).allowMainThreadQueries().build()
-        CategoryRepository(db.categoryDao()).ensureSeeded()
+        CategoryRepository(db, clock).ensureSeeded()
         accounts = AccountRepository(db.accountDao(), clock, db)
         accounts.ensureCashWallet()
         capture = CaptureRepository(context, db, DetectionEngine::withBundledData, clock)

@@ -80,6 +80,34 @@ interface CategoryDao {
 
     @Query("SELECT id FROM categories WHERE name = :name LIMIT 1")
     suspend fun idByName(name: String): Long?
+
+    @Insert
+    suspend fun insert(category: CategoryEntity): Long
+
+    @Update
+    suspend fun update(category: CategoryEntity)
+
+    @Query("SELECT * FROM categories WHERE id = :id")
+    suspend fun getById(id: Long): CategoryEntity?
+
+    @Query("SELECT COALESCE(MAX(sort_order), 0) FROM categories")
+    suspend fun maxSortOrder(): Int
+
+    @Query("SELECT COUNT(*) FROM categories WHERE name = :name COLLATE NOCASE AND archived = 0 AND id != :excludeId")
+    suspend fun countNamed(name: String, excludeId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE category_id = :id AND deleted_at IS NULL")
+    suspend fun usage(id: Long): Int
+
+    /** Moves everything that used [from] to [to] (archiving a category). */
+    @Query("UPDATE transactions SET category_id = :to, updated_at = :at WHERE category_id = :from")
+    suspend fun reassignTransactions(from: Long, to: Long, at: Long)
+
+    @Query("UPDATE rules SET category_id = :to WHERE category_id = :from")
+    suspend fun reassignRules(from: Long, to: Long)
+
+    @Query("UPDATE category_corrections SET category_id = :to WHERE category_id = :from")
+    suspend fun reassignCorrections(from: Long, to: Long)
 }
 
 /** A transaction joined with what a list row needs to show it. */
@@ -254,7 +282,7 @@ interface TransactionDao {
     @Query("UPDATE transactions SET status = :status, review_reason = CASE WHEN :status = 'CONFIRMED' THEN NULL ELSE review_reason END, updated_at = :at WHERE id IN (:ids)")
     suspend fun setStatus(ids: List<Long>, status: String, at: Long)
 
-    @Query("UPDATE transactions SET category_id = :categoryId, category_source = 'USER', updated_at = :at WHERE id = :id")
+    @Query("UPDATE transactions SET category_id = :categoryId, category_source = 'USER', category_reason = NULL, updated_at = :at WHERE id = :id")
     suspend fun setCategory(id: Long, categoryId: Long?, at: Long)
 
     @Query("SELECT id FROM transactions WHERE status = 'PENDING_REVIEW' AND deleted_at IS NULL")

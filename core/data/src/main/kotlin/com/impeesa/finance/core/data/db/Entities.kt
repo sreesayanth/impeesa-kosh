@@ -93,6 +93,8 @@ data class TransactionEntity(
     @ColumnInfo(name = "duplicate_of") val duplicateOf: Long? = null,
     /** How [linkedTxnId] relates: REFUND_OF or REVERSAL_OF. */
     @ColumnInfo(name = "link_kind") val linkKind: String? = null,
+    /** Why the row has its category, in words ("Your rule: Merchant is Swiggy"). */
+    @ColumnInfo(name = "category_reason") val categoryReason: String? = null,
 )
 
 /** A financial message that produced a transaction or useful info. Non-financial messages are never stored. */
@@ -159,4 +161,34 @@ data class AccountIdentifierEntity(
 data class TransactionFts(
     val counterparty: String?,
     val note: String?,
+)
+
+/** A user rule (IMPLEMENTATION_PLAN.md §5.11, §7.1). Match and action names come from the engine's enums. */
+@Entity(tableName = "rules")
+data class RuleEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "match_type") val matchType: String,
+    val pattern: String,
+    val label: String,
+    @ColumnInfo(name = "account_id") val accountId: Long? = null,
+    @ColumnInfo(name = "min_paise") val minPaise: Long? = null,
+    @ColumnInfo(name = "max_paise") val maxPaise: Long? = null,
+    val action: String,
+    @ColumnInfo(name = "category_id") val categoryId: Long? = null,
+    /** EDIT: from an "Always sort" switch; MANUAL: made in the rule editor. */
+    val source: String,
+    val enabled: Boolean = true,
+    val priority: Int = 0,
+    @ColumnInfo(name = "match_count") val matchCount: Int = 0,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+)
+
+/** Each time the user moved a merchant's transaction to a category; learning reads this log (§7.4). */
+@Entity(tableName = "category_corrections", indices = [Index("merchant_key")])
+data class CategoryCorrectionEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "merchant_key") val merchantKey: String,
+    @ColumnInfo(name = "category_id") val categoryId: Long,
+    @ColumnInfo(name = "transaction_id") val transactionId: Long?,
+    val at: Long,
 )

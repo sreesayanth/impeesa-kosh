@@ -68,6 +68,11 @@ data class TransactionDetail(
     /** The SMS or notification this came from, when it was captured. */
     val rawMessageId: Long? = null,
     val pendingReview: Boolean = false,
+    /** USER, RULE, LEARNED, DICTIONARY or KEYWORD; null when nothing decided. */
+    val categorySource: String? = null,
+    /** Why it has this category, in words. */
+    val categoryReason: String? = null,
+    val excludedFromSpending: Boolean = false,
 )
 
 class TransactionRepository internal constructor(
@@ -76,6 +81,7 @@ class TransactionRepository internal constructor(
 ) {
     private val dao: TransactionDao = db.transactionDao()
     private val categories: CategoryDao = db.categoryDao()
+    private val resolver = CategoryResolver(db, clock)
 
     fun observeSummary(dates: IntRange): Flow<PeriodSummary> =
         combine(
@@ -146,6 +152,7 @@ class TransactionRepository internal constructor(
                 createdAt = existing.createdAt
                 val editedBits = if (existing.source == TxnSource.MANUAL) 0 else ALL_FIELDS_EDITED
                 if (existing.transferGroupId == null && draft.kind != EntryKind.TRANSFER) {
+                    resolver.recordCorrection(existing.merchantKey, existing.categoryId, draft.categoryId, existing.id)
                     dao.update(
                         single(draft, source, createdAt, now).copy(
                             id = existing.id,
@@ -268,6 +275,9 @@ class TransactionRepository internal constructor(
             reference = entity.reference,
             rawMessageId = entity.rawMessageId,
             pendingReview = entity.status == com.impeesa.finance.core.model.TxnStatus.PENDING_REVIEW,
+            categorySource = entity.categorySource,
+            categoryReason = entity.categoryReason,
+            excludedFromSpending = entity.excludedFromSpending,
         )
     }
 

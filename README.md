@@ -8,9 +8,9 @@
 
 **A private personal-finance app for Android that tracks your money from bank SMS and UPI alerts, automatically and entirely on your phone.**
 
-[![Download APK](https://img.shields.io/badge/Download-APK%20v0.4.2-C5F26B?style=for-the-badge&logo=android&logoColor=0B0D10&labelColor=0B0D10)](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.4.2.apk)
+[![Download APK](https://img.shields.io/badge/Download-APK%20v0.5.0-C5F26B?style=for-the-badge&logo=android&logoColor=0B0D10&labelColor=0B0D10)](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.5.0.apk)
 
-![Version](https://img.shields.io/badge/version-0.4.2-C5F26B?labelColor=15181D)
+![Version](https://img.shields.io/badge/version-0.5.0-C5F26B?labelColor=15181D)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white&labelColor=15181D)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white&labelColor=15181D)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=jetpackcompose&logoColor=white&labelColor=15181D)
@@ -35,20 +35,20 @@ The app has **no internet permission at all**. The build fails if any library tr
 <tr>
 <td width="60%">
 
-### Impeesa Kosh 0.4.2
+### Impeesa Kosh 0.5.0
 
 | | |
 |---|---|
-| **File** | [`impeesa-kosh-0.4.2.apk`](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.4.2.apk) |
-| **Size** | 11.3 MB |
+| **File** | [`impeesa-kosh-0.5.0.apk`](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.5.0.apk) |
+| **Size** | 11.4 MB |
 | **Requires** | Android 8.0 (API 26) or newer, ARM phone |
 | **Package** | `com.impeesa.finance` |
-| **SHA-256** | `D6E84004CB52693DC469B36089D257EA626FAC4EE967DEB56BFB9827AAFF269A` |
+| **SHA-256** | `B2CB767650487C34C9364888C27263248DC7B6F651EAA73D35B1E5F2881DDA12` |
 
 </td>
 <td width="40%" align="center">
 
-<a href="https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.4.2.apk"><img src="https://img.shields.io/badge/⬇%20Download%20APK-0.4.2-C5F26B?style=for-the-badge&labelColor=0B0D10" alt="Download APK"></a>
+<a href="https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.5.0.apk"><img src="https://img.shields.io/badge/⬇%20Download%20APK-0.5.0-C5F26B?style=for-the-badge&labelColor=0B0D10" alt="Download APK"></a>
 
 <sub>Or browse the <a href="release/">release folder</a></sub>
 
@@ -103,6 +103,13 @@ The app has **no internet permission at all**. The build fails if any library tr
 - Ignores OTPs, promotions, collect requests and failed payments.
 - Uncertain items go to a **Review queue** instead of being logged silently.
 
+**Categories that learn**
+- Correct a merchant twice the same way and Impeesa sorts it that way from then on. Sort it two different ways and it asks you each time.
+- One switch turns a correction into a rule ("Always sort Swiggy as Groceries"), and one tap applies it to earlier transactions. Rows you set by hand are never changed.
+- Rules by merchant, UPI ID, message text, account or amount range can set a category, mark a transfer, leave a payment out of spending, or ask every time. Each rule shows how often it has matched.
+- Every transaction says why it has its category: your choice, your rule, learned, a known merchant, or a keyword in the message.
+- Add your own categories, recolour any, and archive your own (archiving asks where to move their transactions).
+
 **Money management**
 - Multiple bank accounts, credit cards, wallets and a cash wallet, with net balance and card dues.
 - Quick manual entry for cash, plus income and transfers.
@@ -134,7 +141,9 @@ flowchart LR
     G[Gatekeeping<br/>known senders only] --> C[Classify<br/>debit · credit · OTP · promo · bill]
     C --> E[Extract<br/>amount · account · merchant · ref]
     E --> S[Score and route]
-    S -->|confident| L[Auto-log]
+    S -->|confident| K[Categorise<br/>your rules · learned · dictionary · keywords]
+    K --> L[Auto-log]
+    K -->|ambiguous or ask rule| R
     S -->|unsure| R[Review queue]
     S -->|OTP / promo / failed| D[Drop + count]
     L --> M[De-dup and link<br/>same payment · transfers · refunds]
@@ -198,8 +207,9 @@ Both batches are now part of the corpus. To contribute real formats safely, anon
 - [x] **Phase 2:** detection engine, 18 templates, merchant dictionary, confidence routing, golden corpus with accuracy gates
 - [x] **Phase 3:** SMS capture with onboarding, live receiver, history import, catch-up, de-duplication, Review queue, notifications
 - [x] **Phase 4:** payment-app notifications, cross-source merge and split, transfer, refund and reversal linking, Auto-capture screen
-- [ ] **Phase 5:** categorisation that learns from your corrections, custom rules
-- [ ] **Later:** budgets, insights and habits, bills and subscriptions, backup and export, app lock, widgets
+- [x] **Phase 5:** categorisation that learns from corrections, rules (merchant, UPI ID, text, account, amount), apply to history, categories editor, Settings
+- [ ] **Phase 6:** budgets, insights, spending habits and charts
+- [ ] **Later:** bills and subscriptions, backup and export, app lock, widgets
 
 The full plan, including the technology decisions, data model, security and testing strategy, is in **[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)**.
 

@@ -37,7 +37,7 @@ class TransactionRepositoryTest {
         db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), ImpeesaDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        categories = CategoryRepository(db.categoryDao())
+        categories = CategoryRepository(db, clock)
         accounts = AccountRepository(db.accountDao(), clock)
         transactions = TransactionRepository(db, clock)
         categories.ensureSeeded()

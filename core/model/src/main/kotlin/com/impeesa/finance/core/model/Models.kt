@@ -25,4 +25,6 @@ data class Category(
     val name: String,
     val kind: CategoryKind,
     val color: Int,
+    /** Built-in categories keep their names: automatic sorting refers to them by name. */
+    val isSystem: Boolean = true,
 )

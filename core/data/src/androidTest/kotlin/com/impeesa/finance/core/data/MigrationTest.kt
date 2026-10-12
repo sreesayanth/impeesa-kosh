@@ -53,6 +53,27 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun version3To4AddsRulesAndLearning() {
+        helper.createDatabase(DB, 3).apply {
+            execSQL(
+                "INSERT INTO transactions (id, account_id, amount_paise, currency, direction, type, category_id, counterparty, occurred_at, local_date, channel, status, source, confidence, excluded_from_spending, user_edited_fields, created_at, updated_at) " +
+                    "VALUES (9, NULL, 12000, 'INR', 'DEBIT', 'EXPENSE', NULL, 'Uber', 0, 20261011, 'UPI', 'CONFIRMED', 'SMS', 0.95, 0, 0, 0, 0)",
+            )
+            close()
+        }
+        val db = helper.runMigrationsAndValidate(DB, 4, true)
+        db.query("SELECT counterparty, category_reason FROM transactions WHERE id = 9").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("Uber", cursor.getString(0))
+            assertEquals(true, cursor.isNull(1))
+        }
+        db.query("SELECT COUNT(*) FROM rules").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(0, cursor.getInt(0))
+        }
+    }
+
     private companion object {
         const val DB = "migration-test"
     }

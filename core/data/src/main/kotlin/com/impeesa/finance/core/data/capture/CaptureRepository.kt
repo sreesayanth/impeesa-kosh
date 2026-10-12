@@ -2,6 +2,7 @@ package com.impeesa.finance.core.data.capture
 
 import android.content.Context
 import androidx.room.withTransaction
+import com.impeesa.finance.core.data.CategoryResolver
 import com.impeesa.finance.core.data.db.AccountSuggestionEntity
 import com.impeesa.finance.core.data.db.CaptureStatEntity
 import com.impeesa.finance.core.data.db.ImpeesaDatabase
@@ -19,6 +20,9 @@ import com.impeesa.finance.core.engine.Route
 import com.impeesa.finance.core.engine.SourceHash
 import com.impeesa.finance.core.engine.TransferHints
 import com.impeesa.finance.core.engine.account.AccountResolver
+import com.impeesa.finance.core.engine.category.CategoryInput
+import com.impeesa.finance.core.engine.category.CategorySource
+import com.impeesa.finance.core.engine.category.RuleAction
 import com.impeesa.finance.core.engine.classify.MessageType
 import com.impeesa.finance.core.engine.merchant.MerchantSource
 import com.impeesa.finance.core.engine.registry.AppKind
@@ -95,6 +99,7 @@ class CaptureRepository internal constructor(
     private val writer = Mutex()
     private val capture = db.captureDao()
     private val transactions = db.transactionDao()
+    private val resolver = CategoryResolver(db, clock)
     private val zone: ZoneId get() = clock.zone
 
     // ---------------------------------------------------------------- settings
@@ -283,6 +288,17 @@ class CaptureRepository internal constructor(
             ?: receivedLocal
     }
 
+    private fun categoryInput(envelope: MessageEnvelope, analysis: Analysis, accountId: Long?, amount: Money, direction: Direction) = CategoryInput(
+        merchantKey = analysis.merchant?.key,
+        // The raw payee keeps the UPI ID that VPA rules match on.
+        counterparty = analysis.counterparty ?: analysis.merchant?.displayName,
+        text = listOfNotNull(envelope.title, envelope.body).joinToString("\n"),
+        accountId = accountId,
+        amountPaise = amount.paise,
+        isDebit = direction == Direction.DEBIT,
+        dictionaryCategory = analysis.merchant?.categoryName,
+    )
+
     private fun txnSource(envelope: MessageEnvelope) =
         if (envelope.source == MessageSource.SMS) TxnSource.SMS else TxnSource.NOTIFICATION
 
@@ -317,9 +333,16 @@ class CaptureRepository internal constructor(
                 (merchant.source == MerchantSource.DICTIONARY && merged.categorySource != "DICTIONARY") ||
                 (envelope.source == MessageSource.NOTIFICATION && merchant.source == MerchantSource.DICTIONARY)
             if (cleaner) merged = merged.copy(counterparty = merchant.displayName, merchantKey = merchant.key)
-            val category = merchant.categoryName
-            if (merged.type == TxnType.EXPENSE && merged.categorySource != "USER" && category != null && (merged.categoryId == null || cleaner)) {
-                db.categoryDao().idByName(category)?.let { merged = merged.copy(categoryId = it, categorySource = "DICTIONARY") }
+            // A clearer merchant can mean a better category, but never over the user's own rules, learning or choice.
+            if (merged.type == TxnType.EXPENSE && merged.categorySource in REPLACEABLE_SOURCES && (merged.categoryId == null || cleaner)) {
+                val input = categoryInput(envelope, analysis, merged.accountId, Money(merged.amountPaise), merged.direction)
+                    .copy(merchantKey = merged.merchantKey)
+                val decision = resolver.decide(input, resolver.rules())
+                val id = resolver.categoryIdFor(decision)
+                if (decision.action == RuleAction.SET_CATEGORY && !decision.ask && id != null) {
+                    resolver.recordMatch(decision.ruleId)
+                    merged = merged.copy(categoryId = id, categorySource = decision.source?.name, categoryReason = decision.reason)
+                }
             }
         }
         // Two independent sources agree: no need to ask the user about a low-confidence capture.
@@ -346,32 +369,50 @@ class CaptureRepository internal constructor(
         val accountIsCard = context.accounts.any { it.id == accountId && it.isCard }
         val movement = TransferHints.classify(envelope, analysis, accountIsCard)
         val isTransfer = movement == MovementKind.ATM_WITHDRAWAL || movement == MovementKind.CARD_PAYMENT || movement == MovementKind.WALLET_TOPUP
-        val type = when {
+        var type = when {
             isTransfer -> TxnType.TRANSFER
             analysis.type == MessageType.REFUND -> TxnType.REFUND
             direction == Direction.CREDIT -> TxnType.INCOME
             else -> TxnType.EXPENSE
         }
-        val categoryName = when (movement) {
+        val fixedCategory = when (movement) {
             MovementKind.ATM_WITHDRAWAL -> "Cash withdrawal"
             MovementKind.CARD_PAYMENT -> "Card payments"
             MovementKind.WALLET_TOPUP -> "Wallet top-up"
-            else -> when (type) {
-                TxnType.REFUND -> "Refunds"
-                TxnType.EXPENSE -> analysis.merchant?.categoryName
-                else -> null
+            else -> if (type == TxnType.REFUND) "Refunds" else null
+        }
+        var categoryId: Long? = fixedCategory?.let { categories.idByName(it) }
+        var categorySource: String? = if (fixedCategory != null) CategorySource.DICTIONARY.name else null
+        var categoryReason: String? = null
+        var excluded = isTransfer
+        var askReason: String? = null
+        if (fixedCategory == null && (type == TxnType.EXPENSE || type == TxnType.INCOME)) {
+            val decision = resolver.decide(categoryInput(envelope, analysis, accountId, amount, direction), resolver.rules())
+            resolver.recordMatch(decision.ruleId)
+            categorySource = decision.source?.name
+            categoryReason = decision.reason
+            when (decision.action) {
+                RuleAction.MARK_TRANSFER -> {
+                    type = TxnType.TRANSFER
+                    excluded = true
+                    categoryId = categories.idByName("Transfers")
+                }
+                RuleAction.EXCLUDE -> excluded = true
+                RuleAction.SET_CATEGORY, RuleAction.ASK -> categoryId = resolver.categoryIdFor(decision)
             }
+            if (decision.ask) askReason = if (decision.source == CategorySource.RULE) REASON_ASK_CATEGORY else REASON_AMBIGUOUS_CATEGORY
         }
         val foreign = analysis.currency != "INR"
-        val needsReview = analysis.route == Route.REVIEW || foreign || duplicateOf != null
+        val needsReview = analysis.route == Route.REVIEW || foreign || duplicateOf != null || askReason != null
         val base = TransactionEntity(
             accountId = accountId,
             amountPaise = amount.paise,
             currency = analysis.currency,
             direction = direction,
             type = type,
-            categoryId = categoryName?.let { categories.idByName(it) },
-            categorySource = if (categoryName != null) "DICTIONARY" else null,
+            categoryId = categoryId,
+            categorySource = categorySource,
+            categoryReason = categoryReason,
             counterparty = when (movement) {
                 MovementKind.ATM_WITHDRAWAL -> "ATM withdrawal"
                 MovementKind.CARD_PAYMENT -> "Credit card payment"
@@ -384,12 +425,12 @@ class CaptureRepository internal constructor(
             status = if (needsReview) TxnStatus.PENDING_REVIEW else TxnStatus.CONFIRMED,
             source = txnSource(envelope),
             confidence = analysis.confidence.toFloat(),
-            excludedFromSpending = isTransfer,
+            excludedFromSpending = excluded,
             createdAt = now,
             updatedAt = now,
             reviewReason = when {
                 duplicateOf != null -> REASON_POSSIBLE_DUPLICATE
-                else -> analysis.reviewReason?.name
+                else -> analysis.reviewReason?.name ?: askReason
             },
             rawMessageId = rawId,
             merchantKey = analysis.merchant?.key,
@@ -423,10 +464,10 @@ class CaptureRepository internal constructor(
             movement == MovementKind.REVERSAL -> linkReversal(txn)
             txn.type == TxnType.REFUND -> linkRefund(txn)
             (txn.type == TxnType.EXPENSE || txn.type == TxnType.INCOME) && txn.status == TxnStatus.CONFIRMED &&
-                txn.accountId != null && txn.categorySource != "DICTIONARY" ->
+                txn.accountId != null && txn.categorySource == null ->
                 pairTransfer(txn, Duration.ofHours(24), listOf(TxnType.EXPENSE.name, TxnType.INCOME.name)) { other ->
-                    // Own-account transfer: both sides on (different) known accounts, neither a known business.
-                    other.accountId != null && other.accountId != txn.accountId && other.categorySource != "DICTIONARY" &&
+                    // Own-account transfer: both sides on (different) known accounts, neither with a known payee or category.
+                    other.accountId != null && other.accountId != txn.accountId && other.categorySource == null &&
                         other.status == TxnStatus.CONFIRMED && other.source != TxnSource.MANUAL
                 }
         }
@@ -533,6 +574,8 @@ class CaptureRepository internal constructor(
 
     companion object {
         const val REASON_POSSIBLE_DUPLICATE = "POSSIBLE_DUPLICATE"
+        const val REASON_AMBIGUOUS_CATEGORY = "AMBIGUOUS_CATEGORY"
+        const val REASON_ASK_CATEGORY = "ASK_CATEGORY"
         const val ROUTE_MERGED = "MERGED"
         const val LINK_REFUND = "REFUND_OF"
         const val LINK_REVERSAL = "REVERSAL_OF"
@@ -545,5 +588,6 @@ class CaptureRepository internal constructor(
         private const val REFUND_WINDOW_DAYS = 90L
         private const val REVERSAL_WINDOW_DAYS = 7L
         private val AGREEMENT_RESOLVES = setOf("LOW_CONFIDENCE", "UNKNOWN_SENDER")
+        private val REPLACEABLE_SOURCES = setOf(null, CategorySource.DICTIONARY.name, CategorySource.KEYWORD.name)
     }
 }

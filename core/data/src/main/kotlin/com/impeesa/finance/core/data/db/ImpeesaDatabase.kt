@@ -18,16 +18,19 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         CaptureStatEntity::class,
         AccountSuggestionEntity::class,
         AccountIdentifierEntity::class,
+        RuleEntity::class,
+        CategoryCorrectionEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)],
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4)],
 )
 internal abstract class ImpeesaDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
     abstract fun categoryDao(): CategoryDao
     abstract fun transactionDao(): TransactionDao
     abstract fun captureDao(): CaptureDao
+    abstract fun categorizationDao(): CategorizationDao
 
     companion object {
         private const val NAME = "impeesa.db"

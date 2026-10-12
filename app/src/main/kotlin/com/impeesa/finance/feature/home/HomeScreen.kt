@@ -61,6 +61,7 @@ fun HomeScreen(
     onReview: () -> Unit,
     onEnableSms: () -> Unit,
     onAutoCapture: () -> Unit,
+    onSettings: () -> Unit,
     onProfile: () -> Unit,
 ) {
     val container = LocalAppContainer.current
@@ -82,7 +83,7 @@ fun HomeScreen(
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        item(key = "header") { Header(state.greeting, profile, onProfile, onAutoCapture) }
+        item(key = "header") { Header(state.greeting, profile, onProfile, onSettings) }
         if (state.loading) return@LazyColumn
 
         if (!smsAllowed) {
@@ -183,7 +184,7 @@ private fun Banner(title: String, body: String, action: String?, tint: Color, on
 }
 
 @Composable
-private fun Header(greeting: Greeting, profile: Profile, onProfile: () -> Unit, onAutoCapture: () -> Unit) {
+private fun Header(greeting: Greeting, profile: Profile, onProfile: () -> Unit, onSettings: () -> Unit) {
     val colors = ImpeesaTheme.colors
     val text = when (greeting) {
         Greeting.MORNING -> R.string.greeting_morning
@@ -206,7 +207,7 @@ private fun Header(greeting: Greeting, profile: Profile, onProfile: () -> Unit, 
                 maxLines = 1,
             )
         }
-        CircleIconButton(icon = UiR.drawable.ic_tune, contentDescription = "Auto-capture settings", onClick = onAutoCapture)
+        CircleIconButton(icon = UiR.drawable.ic_tune, contentDescription = "Settings", onClick = onSettings)
     }
 }
 
