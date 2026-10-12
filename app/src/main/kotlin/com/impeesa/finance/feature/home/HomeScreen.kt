@@ -49,6 +49,8 @@ import com.impeesa.finance.core.ui.component.EmptyState
 import com.impeesa.finance.core.ui.component.SurfaceCard
 import com.impeesa.finance.core.ui.component.TxnRow
 import com.impeesa.finance.core.ui.theme.ImpeesaTheme
+import com.impeesa.finance.feature.profile.Profile
+import com.impeesa.finance.feature.profile.ProfileAvatar
 
 @Composable
 fun HomeScreen(
@@ -59,11 +61,13 @@ fun HomeScreen(
     onReview: () -> Unit,
     onEnableSms: () -> Unit,
     onAutoCapture: () -> Unit,
+    onProfile: () -> Unit,
 ) {
     val container = LocalAppContainer.current
     val context = LocalContext.current
     val viewModel = viewModel { HomeViewModel(container.transactionRepository, container.accountRepository, container.reviewRepository, container.clock) }
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val profile by container.prefs.profile.collectAsStateWithLifecycle()
     val colors = ImpeesaTheme.colors
     var smsAllowed by remember { mutableStateOf(SmsPermission.granted(context)) }
     var listenerPaused by remember { mutableStateOf(CaptureHealth.listenerPaused(context)) }
@@ -78,7 +82,7 @@ fun HomeScreen(
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        item(key = "header") { Header(state.greeting, onAutoCapture) }
+        item(key = "header") { Header(state.greeting, profile, onProfile, onAutoCapture) }
         if (state.loading) return@LazyColumn
 
         if (!smsAllowed) {
@@ -179,7 +183,7 @@ private fun Banner(title: String, body: String, action: String?, tint: Color, on
 }
 
 @Composable
-private fun Header(greeting: Greeting, onAutoCapture: () -> Unit) {
+private fun Header(greeting: Greeting, profile: Profile, onProfile: () -> Unit, onAutoCapture: () -> Unit) {
     val colors = ImpeesaTheme.colors
     val text = when (greeting) {
         Greeting.MORNING -> R.string.greeting_morning
@@ -187,12 +191,20 @@ private fun Header(greeting: Greeting, onAutoCapture: () -> Unit) {
         Greeting.EVENING -> R.string.greeting_evening
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Box(Modifier.size(44.dp).clip(CircleShape).background(colors.raised), contentAlignment = Alignment.Center) {
-            Text("IK", style = ImpeesaTheme.type.label, color = colors.lime)
-        }
+        ProfileAvatar(
+            profile,
+            modifier = Modifier
+                .clip(CircleShape)
+                .clickable(role = Role.Button, onClickLabel = "Edit profile", onClick = onProfile),
+        )
         Column(Modifier.weight(1f)) {
             Text(stringResource(text), style = ImpeesaTheme.type.caption, color = colors.textSecondary)
-            Text(stringResource(R.string.app_name), style = ImpeesaTheme.type.title, color = colors.textPrimary)
+            Text(
+                if (profile.hasName) profile.firstName else stringResource(R.string.app_name),
+                style = ImpeesaTheme.type.title,
+                color = colors.textPrimary,
+                maxLines = 1,
+            )
         }
         CircleIconButton(icon = UiR.drawable.ic_tune, contentDescription = "Auto-capture settings", onClick = onAutoCapture)
     }

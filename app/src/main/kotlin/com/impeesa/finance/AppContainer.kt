@@ -4,10 +4,14 @@ import android.content.Context
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.impeesa.finance.capture.CaptureNotifier
 import com.impeesa.finance.core.data.DataGraph
+import com.impeesa.finance.feature.profile.Profile
 import com.impeesa.finance.ui.UndoBus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.time.Clock
 
 /**
@@ -42,6 +46,20 @@ class AppPrefs(context: Context) {
     var onboardingDone: Boolean
         get() = prefs.getBoolean("onboarding_done", false)
         set(value) = prefs.edit().putBoolean("onboarding_done", value).apply()
+
+    private val _profile = MutableStateFlow(
+        Profile(
+            name = prefs.getString("profile_name", "").orEmpty(),
+            colorIndex = prefs.getInt("profile_color", 0),
+        ),
+    )
+    val profile: StateFlow<Profile> = _profile.asStateFlow()
+
+    fun saveProfile(name: String, colorIndex: Int) {
+        val profile = Profile(Profile.cleanName(name), colorIndex)
+        prefs.edit().putString("profile_name", profile.name).putInt("profile_color", profile.colorIndex).apply()
+        _profile.value = profile
+    }
 }
 
 val LocalAppContainer = staticCompositionLocalOf<AppContainer> {

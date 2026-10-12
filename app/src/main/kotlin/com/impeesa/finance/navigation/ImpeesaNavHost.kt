@@ -60,6 +60,8 @@ import com.impeesa.finance.feature.placeholder.ComingSoonScreen
 import com.impeesa.finance.feature.onboarding.ImportScreen
 import com.impeesa.finance.feature.onboarding.SmsPermissionScreen
 import com.impeesa.finance.feature.onboarding.WelcomeScreen
+import com.impeesa.finance.feature.profile.EditProfileScreen
+import com.impeesa.finance.feature.profile.ProfileSetupScreen
 import com.impeesa.finance.feature.review.ReviewScreen
 import com.impeesa.finance.feature.sources.SourcesScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -80,6 +82,8 @@ import com.impeesa.finance.core.ui.R as UiR
 @Serializable data object ImportRoute
 @Serializable data object ReviewRoute
 @Serializable data object SourcesRoute
+@Serializable data object ProfileSetupRoute
+@Serializable data object EditProfileRoute
 
 private data class Tab(val route: Any, @StringRes val label: Int, @DrawableRes val icon: Int)
 
@@ -123,15 +127,17 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
 
     Box(Modifier.fillMaxSize().background(ImpeesaTheme.colors.ink)) {
         NavHost(navController = navController, startDestination = startDestination) {
-            composable<WelcomeRoute> { WelcomeScreen(onStart = { navController.navigate(SmsPermissionRoute) }) }
+            composable<WelcomeRoute> { WelcomeScreen(onStart = { navController.navigate(ProfileSetupRoute) }) }
+            composable<ProfileSetupRoute> { ProfileSetupScreen(onContinue = { navController.navigate(SmsPermissionRoute) }) }
+            composable<EditProfileRoute> { EditProfileScreen(onBack = { navController.popBackStack() }) }
             composable<SmsPermissionRoute> {
                 SmsPermissionScreen(
                     onGranted = {
                         navController.navigate(ImportRoute) { popUpTo<SmsPermissionRoute> { inclusive = true } }
                     },
                     onSkip = {
-                        val fromWelcome = navController.previousBackStackEntry?.destination?.hasRoute(WelcomeRoute::class) == true
-                        if (fromWelcome) finishOnboarding(HomeRoute) else navController.popBackStack()
+                        val inOnboarding = navController.previousBackStackEntry?.destination?.hasRoute(ProfileSetupRoute::class) == true
+                        if (inOnboarding) finishOnboarding(HomeRoute) else navController.popBackStack()
                     },
                 )
             }
@@ -161,6 +167,7 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
                     onReview = { navController.navigate(ReviewRoute) },
                     onEnableSms = { navController.navigate(SmsPermissionRoute) },
                     onAutoCapture = { navController.navigate(SourcesRoute) },
+                    onProfile = { navController.navigate(EditProfileRoute) },
                 )
             }
             composable<InsightsRoute> { ComingSoonScreen(title = "Insights", phase = "Phase 6") }

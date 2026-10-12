@@ -86,7 +86,7 @@ fun ImportScreen(onDone: () -> Unit, onReview: () -> Unit) {
         next()
     }
 
-    OnboardingScaffold(step = 2) {
+    OnboardingScaffold(step = 3) {
         Text(
             if (progress.done) "You're all set" else "Reading your messages",
             style = ImpeesaTheme.type.display,

@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -65,12 +66,13 @@ internal fun OnboardingScaffold(step: Int, content: @Composable () -> Unit) {
             .background(colors.ink)
             .statusBarsPadding()
             .navigationBarsPadding()
+            .imePadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(22.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            repeat(3) { index ->
+            repeat(4) { index ->
                 Box(
                     Modifier
                         .height(8.dp)
@@ -151,7 +153,7 @@ fun SmsPermissionScreen(onGranted: () -> Unit, onSkip: () -> Unit) {
         }
     }
 
-    OnboardingScaffold(step = 1) {
+    OnboardingScaffold(step = 2) {
         SmsToTransactionDemo()
         Text(
             "Every rupee, tracked for you.",

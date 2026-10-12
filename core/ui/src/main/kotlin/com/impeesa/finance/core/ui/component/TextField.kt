@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.impeesa.finance.core.ui.theme.ImpeesaTheme
@@ -33,6 +34,7 @@ fun ImpeesaTextField(
     placeholder: String = "",
     keyboardType: KeyboardType = KeyboardType.Text,
     prefix: String? = null,
+    capitalization: KeyboardCapitalization = KeyboardCapitalization.None,
 ) {
     val colors = ImpeesaTheme.colors
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -43,7 +45,7 @@ fun ImpeesaTextField(
             singleLine = true,
             textStyle = ImpeesaTheme.type.bodyStrong.copy(color = colors.textPrimary),
             cursorBrush = SolidColor(colors.lime),
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done),
+            keyboardOptions = KeyboardOptions(capitalization = capitalization, keyboardType = keyboardType, imeAction = ImeAction.Done),
             modifier = Modifier
                 .fillMaxWidth()
                 .semantics { contentDescription = label },
