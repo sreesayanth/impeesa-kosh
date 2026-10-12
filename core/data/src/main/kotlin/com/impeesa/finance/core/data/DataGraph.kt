@@ -20,7 +20,9 @@ class DataGraph(context: Context, clock: Clock) {
     private val database: ImpeesaDatabase by databaseDelegate
 
     val categoryRepository: CategoryRepository by lazy { CategoryRepository(database, clock) }
-    val accountRepository: AccountRepository by lazy { AccountRepository(database.accountDao(), clock, database) }
+    val accountRepository: AccountRepository by lazy {
+        AccountRepository(database.accountDao(), clock, database) { captureRepository.replayLedger(it) }
+    }
     val transactionRepository: TransactionRepository by lazy { TransactionRepository(database, clock) }
     val reviewRepository: ReviewRepository by lazy { ReviewRepository(database, clock) }
     val categorizationRepository: CategorizationRepository by lazy { CategorizationRepository(database, clock) }

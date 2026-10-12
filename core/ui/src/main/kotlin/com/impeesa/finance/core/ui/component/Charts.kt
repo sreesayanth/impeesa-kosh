@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -127,7 +128,9 @@ fun BarChart(
                             style = ImpeesaTheme.type.caption,
                             color = colors.ink,
                             maxLines = 1,
-                            modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(colors.textPrimary).padding(horizontal = 6.dp, vertical = 3.dp),
+                            softWrap = false,
+                            // May be wider than its bar; it is centred over it rather than cut off.
+                            modifier = Modifier.wrapContentWidth(unbounded = true).clip(RoundedCornerShape(8.dp)).background(colors.textPrimary).padding(horizontal = 6.dp, vertical = 3.dp),
                         )
                     }
                     val barColor = if (i == highlight) colors.lime else colors.line

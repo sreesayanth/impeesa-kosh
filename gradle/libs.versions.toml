@@ -19,6 +19,7 @@ junit = "4.13.2"
 androidxJunit = "1.2.1"
 androidxTestRunner = "1.6.2"
 biometric = "1.1.0"
+fragment = "1.8.5"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -47,6 +48,9 @@ sqlcipher-android = { group = "net.zetetic", name = "sqlcipher-android", version
 androidx-sqlite-ktx = { group = "androidx.sqlite", name = "sqlite-ktx", version.ref = "sqlite" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
+# Pinned: biometric 1.1.0 pulls fragment 1.2.x, whose FragmentActivity rejects the request codes
+# of modern activity-result launchers (crash on every permission prompt and file picker).
+androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
 androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
 
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }

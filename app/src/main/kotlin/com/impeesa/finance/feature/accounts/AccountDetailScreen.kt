@@ -413,7 +413,8 @@ private fun Pill(label: String, onClick: () -> Unit) {
 @Composable
 private fun AmountSheet(title: String, hint: String, initial: Money?, button: String, allowEmpty: Boolean = false, onDone: (Money?) -> Unit) {
     val colors = ImpeesaTheme.colors
-    var text by rememberSaveable { mutableStateOf(initial?.takeIf { !it.isZero }?.let { AmountInput.of(it).text }.orEmpty()) }
+    // The field can't hold a minus sign, so a negative amount starts empty instead of flipping to positive.
+    var text by rememberSaveable { mutableStateOf(initial?.takeIf { it.paise > 0 }?.let { AmountInput.of(it).text }.orEmpty()) }
     val amount = AmountInput.parse(text)
     Column(Modifier.fillMaxWidth().imePadding().padding(start = 20.dp, end = 20.dp, bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(title, style = ImpeesaTheme.type.title, color = colors.textPrimary)

@@ -1,6 +1,7 @@
 package com.impeesa.finance.core.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.impeesa.finance.core.ui.theme.ImpeesaTheme
 
@@ -35,8 +38,11 @@ fun ImpeesaTextField(
     keyboardType: KeyboardType = KeyboardType.Text,
     prefix: String? = null,
     capitalization: KeyboardCapitalization = KeyboardCapitalization.None,
+    /** Hides what is typed (passphrases) and keeps the keyboard from learning it. */
+    password: Boolean = false,
 ) {
     val colors = ImpeesaTheme.colors
+    val shape = RoundedCornerShape(16.dp)
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SectionLabel(label)
         BasicTextField(
@@ -45,7 +51,13 @@ fun ImpeesaTextField(
             singleLine = true,
             textStyle = ImpeesaTheme.type.bodyStrong.copy(color = colors.textPrimary),
             cursorBrush = SolidColor(colors.lime),
-            keyboardOptions = KeyboardOptions(capitalization = capitalization, keyboardType = keyboardType, imeAction = ImeAction.Done),
+            keyboardOptions = KeyboardOptions(
+                capitalization = if (password) KeyboardCapitalization.None else capitalization,
+                autoCorrectEnabled = !password,
+                keyboardType = if (password) KeyboardType.Password else keyboardType,
+                imeAction = ImeAction.Done,
+            ),
+            visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
             modifier = Modifier
                 .fillMaxWidth()
                 .semantics { contentDescription = label },
@@ -54,8 +66,10 @@ fun ImpeesaTextField(
                     Modifier
                         .fillMaxWidth()
                         .heightIn(min = 52.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(shape)
                         .background(colors.card)
+                        // The outline keeps the field visible on card-coloured sheets too.
+                        .border(1.dp, colors.line, shape)
                         .padding(horizontal = 16.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {

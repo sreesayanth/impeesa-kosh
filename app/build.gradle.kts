@@ -13,8 +13,8 @@ android {
         applicationId = "com.impeesa.finance"
         minSdk = 26
         targetSdk = 35
-        versionCode = 12
-        versionName = "0.9.1"
+        versionCode = 13
+        versionName = "0.9.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -58,6 +58,7 @@ dependencies {
     implementation(libs.androidx.paging.compose)
     implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.biometric)
+    implementation(libs.androidx.fragment)
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)

@@ -208,6 +208,38 @@ class CaptureRepository internal constructor(
         }
     }
 
+    /**
+     * For an account added after its messages arrived: replays the kept SMS so the bank's latest
+     * "Avl Bal", the card's bills and payments towards them are picked up (§9.5). Past differences
+     * aren't reported.
+     */
+    suspend fun replayLedger(accountId: Long) = writer.withLock {
+        db.withTransaction {
+            val context = loadContext()
+            val account = context.accounts.firstOrNull { it.id == accountId } ?: return@withTransaction
+            if (account.senderCodes.isEmpty()) return@withTransaction
+            for (raw in capture.smsWithBody()) {
+                if (account.senderCodes.none { raw.sender.contains(it, ignoreCase = true) }) continue
+                val envelope = MessageEnvelope(
+                    source = MessageSource.SMS,
+                    sender = raw.sender,
+                    body = raw.body ?: continue,
+                    receivedAt = Instant.ofEpochMilli(raw.receivedAt),
+                    title = raw.title,
+                )
+                val analysis = engine.analyze(envelope, context)
+                if ((analysis.account as? AccountMatch.Matched)?.accountId != accountId) continue
+                recordLedger(accountId, analysis, envelope, raw.id, context, reconcile = false)
+                val txn = raw.txnId?.takeIf { account.isCard && raw.route != ROUTE_MERGED }?.let { transactions.getById(it) }
+                if (txn != null && txn.accountId == accountId && txn.direction == Direction.CREDIT && txn.type != TxnType.REFUND &&
+                    txn.status == TxnStatus.CONFIRMED && txn.deletedAt == null
+                ) {
+                    applyCardPayment(accountId, Money(txn.amountPaise))
+                }
+            }
+        }
+    }
+
     fun observeStats(month: Int): Flow<CaptureStats> = capture.observeStats(month).map { rows ->
         CaptureStats(
             logged = rows.filter { it.outcome == Route.AUTO_LOG.name }.sumOf { it.count },
@@ -588,7 +620,14 @@ class CaptureRepository internal constructor(
      * Keeps what the bank says about an account: "Avl Bal" and a card's available limit become snapshots
      * (the snapshot wins over Kosh's own sum), and statement SMS become bills.
      */
-    private suspend fun recordLedger(accountId: Long, analysis: Analysis, envelope: MessageEnvelope, rawId: Long, context: EngineContext) {
+    private suspend fun recordLedger(
+        accountId: Long,
+        analysis: Analysis,
+        envelope: MessageEnvelope,
+        rawId: Long,
+        context: EngineContext,
+        reconcile: Boolean = true,
+    ) {
         val ledger = db.ledgerDao()
         val asOf = envelope.receivedAt.toEpochMilli()
         val isCard = context.accounts.any { it.id == accountId && it.isCard }
@@ -602,7 +641,7 @@ class CaptureRepository internal constructor(
         if (snapshot != null) {
             val previous = ledger.latestSnapshotAt(accountId)
             // Only the newest snapshot reconciles, and an account's first one has nothing to reconcile against.
-            val diff = if (previous != null && asOf >= previous) {
+            val diff = if (reconcile && previous != null && asOf >= previous) {
                 val computed = db.accountDao().balanceOf(accountId) ?: 0L
                 val reported = if (snapshot.first == SNAPSHOT_AVAILABLE_LIMIT) {
                     db.accountDao().getById(accountId)?.creditLimitPaise?.let { snapshot.second - it }

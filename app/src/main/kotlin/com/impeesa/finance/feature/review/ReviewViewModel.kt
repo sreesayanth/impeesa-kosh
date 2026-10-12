@@ -9,6 +9,7 @@ import com.impeesa.finance.core.data.db.ReviewRow
 import com.impeesa.finance.core.model.Category
 import com.impeesa.finance.core.model.CategoryKind
 import com.impeesa.finance.core.model.DateLabels
+import com.impeesa.finance.core.model.counted
 import com.impeesa.finance.core.model.Direction
 import com.impeesa.finance.core.model.Money
 import com.impeesa.finance.ui.UndoBus
@@ -105,7 +106,7 @@ class ReviewViewModel(
     fun confirmAll() {
         viewModelScope.launch {
             val ids = review.confirmAll()
-            if (ids.isNotEmpty()) undo.post(UndoEvent("Added ${ids.size} transactions") { review.backToReview(ids) })
+            if (ids.isNotEmpty()) undo.post(UndoEvent("Added ${counted(ids.size, "transaction")}") { review.backToReview(ids) })
         }
     }
 

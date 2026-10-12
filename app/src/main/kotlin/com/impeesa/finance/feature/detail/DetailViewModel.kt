@@ -14,6 +14,7 @@ import com.impeesa.finance.core.data.TransactionRepository
 import com.impeesa.finance.core.model.Category
 import com.impeesa.finance.core.model.CategoryKind
 import com.impeesa.finance.core.model.EntryKind
+import com.impeesa.finance.core.model.counted
 import com.impeesa.finance.core.model.Money
 import com.impeesa.finance.core.model.TxnSource
 import com.impeesa.finance.ui.UndoBus
@@ -137,7 +138,11 @@ class DetailViewModel(
         DetailUiState(
             loading = false,
             kind = detail.kind,
-            title = detail.note ?: detail.counterparty ?: category?.name ?: "Transaction",
+            title = detail.note ?: detail.counterparty ?: category?.name ?: when (detail.kind) {
+                EntryKind.INCOME -> "Money received"
+                EntryKind.EXPENSE -> "Payment"
+                EntryKind.TRANSFER -> "Transfer"
+            },
             amount = signed,
             whenLabel = LocalDateTime.ofInstant(detail.occurredAt, clock.zone).format(formatter),
             sourceLabel = when (detail.source) {
@@ -196,7 +201,7 @@ class DetailViewModel(
             _learn.update { it?.copy(appliedCount = snapshots.size) }
             if (snapshots.isNotEmpty()) {
                 undo.post(
-                    UndoEvent("Updated ${snapshots.size} earlier ${prompt.merchant} transactions") {
+                    UndoEvent("Updated ${counted(snapshots.size, "earlier ${prompt.merchant} transaction")}") {
                         categorization.restore(snapshots)
                         _learn.update { it?.copy(appliedCount = null) }
                     },

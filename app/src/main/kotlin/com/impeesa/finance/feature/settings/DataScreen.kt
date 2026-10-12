@@ -41,7 +41,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import com.impeesa.finance.LocalAppContainer
@@ -52,6 +51,7 @@ import com.impeesa.finance.core.data.capture.CaptureRepository
 import com.impeesa.finance.core.model.backup.BackupException
 import com.impeesa.finance.core.model.backup.BackupFormat
 import com.impeesa.finance.core.model.analytics.Period
+import com.impeesa.finance.core.model.counted
 import com.impeesa.finance.core.ui.component.ImpeesaChip
 import com.impeesa.finance.core.ui.component.ImpeesaTextField
 import com.impeesa.finance.core.ui.component.PrimaryButton
@@ -296,7 +296,8 @@ fun DataScreen(onBack: () -> Unit) {
             title = { Text("Replace all data?") },
             text = {
                 Text(
-                    "Backup from ${formatTime(p.exportedAt, container.clock.zone)}: ${p.transactions} transactions, ${p.accounts} accounts, ${p.budgets} budgets, ${p.rules} rules" +
+                    "Backup from ${formatTime(p.exportedAt, container.clock.zone)}: " +
+                        listOf(counted(p.transactions, "transaction"), counted(p.accounts, "account"), counted(p.budgets, "budget"), counted(p.rules, "rule")).joinToString() +
                         (if (p.includesMessages) ", with message texts." else ".") +
                         "\n\nEverything currently on this phone will be replaced. This can't be undone.",
                 )
@@ -306,7 +307,7 @@ fun DataScreen(onBack: () -> Unit) {
                     opened = null
                     run("Restoring…") {
                         backups.restore(backup)
-                        container.undo.post(UndoEvent("Restored ${p.transactions} transactions"))
+                        container.undo.post(UndoEvent("Restored ${counted(p.transactions, "transaction")}"))
                     }
                 }) { Text("Replace", color = colors.coral) }
             },
@@ -357,9 +358,9 @@ private fun PassphraseSheet(purpose: PassFor, onDone: (CharArray, Boolean) -> Un
     val ok = if (restoring) pass.isNotEmpty() else longEnough && pass == confirm
     Column(Modifier.fillMaxWidth().imePadding().padding(start = 20.dp, end = 20.dp, bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(if (restoring) "Backup passphrase" else "Choose a passphrase", style = ImpeesaTheme.type.title, color = colors.textPrimary)
-        ImpeesaTextField(value = pass, onValueChange = { pass = it }, label = "Passphrase", placeholder = "At least ${BackupFormat.MIN_PASSPHRASE} characters", keyboardType = KeyboardType.Password)
+        ImpeesaTextField(value = pass, onValueChange = { pass = it }, label = "Passphrase", placeholder = "At least ${BackupFormat.MIN_PASSPHRASE} characters", password = true)
         if (!restoring) {
-            ImpeesaTextField(value = confirm, onValueChange = { confirm = it }, label = "Type it again", keyboardType = KeyboardType.Password)
+            ImpeesaTextField(value = confirm, onValueChange = { confirm = it }, label = "Type it again", password = true)
             if (confirm.isNotEmpty() && confirm != pass) Text("Passphrases don't match", style = ImpeesaTheme.type.caption, color = colors.coral)
             ToggleRow("Include original messages", "Bank SMS texts. Larger file; off keeps backups leaner and more private.", includeMessages) { includeMessages = it }
             Text(

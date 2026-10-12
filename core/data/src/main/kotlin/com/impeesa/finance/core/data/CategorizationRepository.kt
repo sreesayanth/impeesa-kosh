@@ -122,7 +122,7 @@ internal class CategoryResolver(private val db: ImpeesaDatabase, private val clo
 
     suspend fun learned(merchantKey: String?): LearnedState {
         if (merchantKey.isNullOrBlank()) return LearnedState.None
-        val history = dao.corrections(merchantKey, since()).map { Correction(it.categoryId, it.at) }
+        val history = dao.corrections(merchantKey, since()).map { Correction(it.categoryId, it.at, it.id) }
         return LearningPolicy.evaluate(history, clock.millis())
     }
 
@@ -318,7 +318,7 @@ class CategorizationRepository internal constructor(
     fun observeLearned(): Flow<List<LearnedMerchant>> = dao.observeCorrections(resolver.since()).map { rows ->
         val now = clock.millis()
         rows.groupBy { it.merchantKey }.mapNotNull { (key, list) ->
-            val state = LearningPolicy.evaluate(list.map { Correction(it.categoryId, it.at) }, now)
+            val state = LearningPolicy.evaluate(list.map { Correction(it.categoryId, it.at, it.id) }, now)
             val ids = when (state) {
                 is LearnedState.Learned -> listOf(state.categoryId)
                 is LearnedState.Ambiguous -> state.ranked

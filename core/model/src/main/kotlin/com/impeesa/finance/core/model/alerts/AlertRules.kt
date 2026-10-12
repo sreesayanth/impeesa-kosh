@@ -2,6 +2,7 @@ package com.impeesa.finance.core.model.alerts
 
 import com.impeesa.finance.core.model.Money
 import com.impeesa.finance.core.model.MoneyFormat
+import com.impeesa.finance.core.model.counted
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -123,7 +124,7 @@ object AlertRules {
             }
         }
         inputs.newAccounts.filter { it.sightings >= 2 }.forEach { a ->
-            add(AlertCandidate(AlertKind.NEW_ACCOUNT, "NEW_ACCOUNT:${a.suggestionId}", "New account found: ${a.label}", "Seen in ${a.sightings} messages. Add it to track its balance.", "accounts"))
+            add(AlertCandidate(AlertKind.NEW_ACCOUNT, "NEW_ACCOUNT:${a.suggestionId}", "New account found: ${a.label}", "Seen in ${counted(a.sightings, "message")}. Add it to track its balance.", "accounts"))
         }
         inputs.lowBalances.filter { it.balance < it.threshold }.forEach { a ->
             add(AlertCandidate(AlertKind.LOW_BALANCE, "LOW:${a.accountId}:$today", "${a.name} is low: ${MoneyFormat.format(a.balance)}", "Below the ${MoneyFormat.format(a.threshold)} you set.", "account:${a.accountId}"))
@@ -138,7 +139,8 @@ object AlertRules {
             )
         }
         val weekly = inputs.weekly
-        if (weekly != null && today.dayOfWeek == DayOfWeek.MONDAY) {
+        // A week with nothing spent and nothing to compare with has no story to tell.
+        if (weekly != null && today.dayOfWeek == DayOfWeek.MONDAY && (weekly.spent.paise > 0 || weekly.previous.paise > 0)) {
             val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).minusWeeks(1)
             val compare = when {
                 weekly.previous.paise <= 0 -> ""

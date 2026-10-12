@@ -41,9 +41,9 @@ class CaptureRepositoryTest {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         db = Room.inMemoryDatabaseBuilder(context, ImpeesaDatabase::class.java).allowMainThreadQueries().build()
         CategoryRepository(db, clock).ensureSeeded()
-        accounts = AccountRepository(db.accountDao(), clock, db)
-        accounts.ensureCashWallet()
         capture = CaptureRepository(context, db, DetectionEngine::withBundledData, clock)
+        accounts = AccountRepository(db.accountDao(), clock, db) { capture.replayLedger(it) }
+        accounts.ensureCashWallet()
         review = ReviewRepository(db, clock)
         transactions = TransactionRepository(db, clock)
     }
@@ -188,6 +188,25 @@ class CaptureRepositoryTest {
         // The next message from that account is matched directly.
         capture.ingest(sms("VM-HDFCBK", "Rs.120.00 debited from A/c XX4821 to VPA rapido@ybl on 11-10-26. UPI Ref 628455667788."))
         assertEquals(Money(-60_600), accounts.observeAccounts().first().single { it.id == accountId }.balance)
+    }
+
+    @Test
+    fun accountAddedLaterPicksUpTheBanksBalance() = runTest {
+        capture.ingest(swiggy)
+        capture.ingest(sms("VM-HDFCBK", "Rs.5000 withdrawn from A/c XX4821 at ATM S1AW1234 on 11-10-26. Avl Bal Rs.1,79,350.00", at = "2026-10-11T08:30:00Z"))
+
+        val accountId = accounts.acceptSuggestion(accounts.observeSuggestions().first().single().id)!!
+        val hdfc = accounts.observeAccounts().first().single { it.id == accountId }
+        assertEquals(Money(1_79_350_00), hdfc.balance)
+    }
+
+    @Test
+    fun editingOnlyTheAmountKeepsTheAutomaticCategory() = runTest {
+        val id = (capture.ingest(swiggy) as IngestResult.Logged).transactionId
+        transactions.save(transactions.draftFor(id)!!.copy(amount = Money(50_000)))
+        val row = db.transactionDao().getById(id)!!
+        assertEquals(50_000L, row.amountPaise)
+        assertEquals("DICTIONARY", row.categorySource)
     }
 
     @Test

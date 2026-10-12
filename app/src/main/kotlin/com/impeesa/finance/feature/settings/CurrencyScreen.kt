@@ -47,14 +47,17 @@ import kotlinx.coroutines.launch
  * Bank SMS in any other currency go to Review as foreign.
  */
 @Composable
-fun CurrencyScreen(onBack: () -> Unit) {
+fun CurrencyScreen(onBack: () -> Unit, onChanged: () -> Unit) {
     val container = LocalAppContainer.current
     val settings by container.prefs.money.collectAsStateWithLifecycle()
     val colors = ImpeesaTheme.colors
 
     fun apply(next: MoneySettings) {
+        if (next == settings) return
         container.prefs.setMoney(next)
         container.ioScope.launch { container.captureRepository.homeCurrency = next.currency.code }
+        // The app redraws from scratch with the new format; this brings the user back here.
+        onChanged()
     }
 
     LazyColumn(

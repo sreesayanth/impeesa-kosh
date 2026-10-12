@@ -42,6 +42,7 @@ import com.impeesa.finance.core.engine.category.RuleMatch
 import com.impeesa.finance.core.model.MoneyFormat
 import com.impeesa.finance.core.model.Account
 import com.impeesa.finance.core.model.AmountInput
+import com.impeesa.finance.core.model.counted
 import com.impeesa.finance.core.model.Category
 import com.impeesa.finance.core.model.CategoryKind
 import com.impeesa.finance.core.ui.R as UiR
@@ -181,7 +182,7 @@ class RuleEditorViewModel(
             if (snapshots.isEmpty()) {
                 undo.post(UndoEvent("Rule saved"))
             } else {
-                undo.post(UndoEvent("Rule saved · updated ${snapshots.size} transactions") { categorization.restore(snapshots) })
+                undo.post(UndoEvent("Rule saved · updated ${counted(snapshots.size, "transaction")}") { categorization.restore(snapshots) })
             }
             closeChannel.send(Unit)
         }

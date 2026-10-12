@@ -89,6 +89,8 @@ private data class Form(
     val saving: Boolean = false,
     /** Editing a captured transaction whose account isn't known: keep it unassigned until the user picks one. */
     val keepAccountEmpty: Boolean = false,
+    /** Same for a captured transaction not sorted yet: saving other changes mustn't pick a category for it. */
+    val keepCategoryEmpty: Boolean = false,
 )
 
 class AddTransactionViewModel(
@@ -140,7 +142,7 @@ class AddTransactionViewModel(
             kind = f.kind,
             input = f.input,
             categories = cats,
-            categoryId = f.categoryId?.takeIf { id -> cats.any { it.id == id } } ?: cats.firstOrNull()?.id,
+            categoryId = f.categoryId?.takeIf { id -> cats.any { it.id == id } } ?: if (f.keepCategoryEmpty) null else cats.firstOrNull()?.id,
             accounts = usable,
             accountId = accountId,
             toAccountId = toAccountId,
@@ -167,6 +169,7 @@ class AddTransactionViewModel(
                         time = draft.occurredAt.toLocalTime(),
                         note = draft.note.orEmpty(),
                         keepAccountEmpty = draft.accountId == null,
+                        keepCategoryEmpty = draft.categoryId == null,
                     )
                 }
             }
@@ -179,7 +182,7 @@ class AddTransactionViewModel(
     }?.id
 
     fun setKind(kind: EntryKind) = form.update {
-        it.copy(kind = kind, categoryId = null, accountId = null, toAccountId = null, error = null)
+        it.copy(kind = kind, categoryId = null, accountId = null, toAccountId = null, keepCategoryEmpty = false, error = null)
     }
 
     fun press(key: Char) = form.update { it.copy(input = it.input.press(key), error = null) }

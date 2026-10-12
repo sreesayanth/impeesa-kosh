@@ -27,7 +27,11 @@ data class TxnUi(
 fun TransactionRow.toUi(zone: ZoneId, today: LocalDate): TxnUi {
     val time = LocalDateTime.ofInstant(Instant.ofEpochMilli(occurredAt), zone)
     val isTransfer = type == TxnType.TRANSFER
-    val title = note ?: counterparty ?: categoryName ?: if (isTransfer) "Transfer" else "Transaction"
+    val title = note ?: counterparty ?: categoryName ?: when {
+        isTransfer -> "Transfer"
+        direction == Direction.CREDIT -> "Money received"
+        else -> "Payment"
+    }
     val sourceLabel = when (source) {
         TxnSource.SMS -> "SMS"
         TxnSource.NOTIFICATION -> "Notification"

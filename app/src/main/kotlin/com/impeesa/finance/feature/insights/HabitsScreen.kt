@@ -195,11 +195,7 @@ fun HabitsScreen(onBack: () -> Unit) {
                 PatternTile(
                     title = "WEEKENDS",
                     tint = colors.shopping,
-                    headline = if (state.weekday.paise > 0 && state.weekend.paise > state.weekday.paise) {
-                        "You spend ${"%.1f".format(Locale.ENGLISH, state.weekend.paise.toDouble() / state.weekday.paise)}× more on Sat–Sun"
-                    } else {
-                        "Weekdays and weekends look alike"
-                    },
+                    headline = weekendHeadline(state.weekday, state.weekend),
                     detail = "${MoneyFormat.format(state.weekend)} vs ${MoneyFormat.format(state.weekday)} a day",
                     modifier = Modifier.weight(1f),
                 )
@@ -344,5 +340,18 @@ private fun RecurringCard(state: HabitsUiState, onHide: (RecurringSeries) -> Uni
                 }
             }
         }
+    }
+}
+
+/** Daily averages within 15% of each other count as alike. */
+private fun weekendHeadline(weekday: Money, weekend: Money): String {
+    fun times(a: Money, b: Money) = "%.1f".format(Locale.ENGLISH, a.paise.toDouble() / b.paise)
+    return when {
+        weekday.paise <= 0 && weekend.paise <= 0 -> "Not enough spending yet"
+        weekday.paise <= 0 -> "Your spending falls on Sat–Sun"
+        weekend.paise <= 0 -> "Your spending falls on weekdays"
+        weekend.paise * 100 > weekday.paise * 115 -> "You spend ${times(weekend, weekday)}× more on Sat–Sun"
+        weekday.paise * 100 > weekend.paise * 115 -> "You spend ${times(weekday, weekend)}× more on weekdays"
+        else -> "Weekdays and weekends look alike"
     }
 }

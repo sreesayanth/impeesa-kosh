@@ -131,11 +131,14 @@ object InsightRules {
         )
     }.take(2)
 
-    /** Under the daily safe-to-spend for the last 5 days. */
+    /** Under the daily safe-to-spend for the last 5 days, all of them days Kosh was already tracking. */
     private fun streak(inputs: InsightInputs): Insight? {
         val safe = inputs.safePerDay ?: return null
         if (safe.paise <= 0) return null
         val last5 = (1..5L).map { inputs.today.minusDays(it) }
+        // Days before the first recorded spend aren't thrift, just no data (a new install).
+        val firstSpend = inputs.daily.keys.minOrNull() ?: return null
+        if (firstSpend > last5.last()) return null
         if (!last5.all { (inputs.daily[it]?.paise ?: 0L) <= safe.paise }) return null
         return Insight(InsightKind.STREAK, "STREAK:${inputs.today}", "5 days in a row under your daily safe-to-spend. Nice.", 10, positive = true)
     }

@@ -41,6 +41,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.impeesa.finance.LocalAppContainer
 import com.impeesa.finance.core.model.EntryKind
+import com.impeesa.finance.core.model.counted
 import com.impeesa.finance.core.ui.R as UiR
 import com.impeesa.finance.core.ui.component.AmountText
 import com.impeesa.finance.core.ui.component.CircleIconButton
@@ -166,7 +167,7 @@ fun DetailScreen(id: Long, onBack: () -> Unit, onEdit: (Long) -> Unit, onReview:
 
         if (state.sources.isNotEmpty()) {
             SurfaceCard(padding = 16.dp) {
-                Text("Seen in ${state.sources.size} messages", style = ImpeesaTheme.type.label, color = colors.textPrimary)
+                Text("Seen in ${counted(state.sources.size, "message")}", style = ImpeesaTheme.type.label, color = colors.textPrimary)
                 Text(
                     "Kosh merged these because they describe the same payment.",
                     style = ImpeesaTheme.type.caption,

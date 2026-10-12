@@ -124,7 +124,7 @@ private val tabs = listOf(
 )
 
 @Composable
-fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
+fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit, onOpenLink: (String) -> Unit) {
     val container = LocalAppContainer.current
     val navController = rememberNavController()
     val startDestination: Any = remember { if (container.prefs.onboardingDone) HomeRoute else WelcomeRoute }
@@ -143,6 +143,10 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
             target == "sources" -> navController.navigate(SourcesRoute) { launchSingleTop = true }
             target == "alerts" -> navController.navigate(AlertsRoute) { launchSingleTop = true }
             target == "add" -> navController.navigate(AddTransactionRoute()) { launchSingleTop = true }
+            target == "currency" -> {
+                navController.navigate(SettingsRoute) { launchSingleTop = true }
+                navController.navigate(CurrencyRoute) { launchSingleTop = true }
+            }
         }
         onLinkHandled()
     }
@@ -195,7 +199,7 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
                     onCurrency = { navController.navigate(CurrencyRoute) },
                 )
             }
-            composable<CurrencyRoute> { CurrencyScreen(onBack = { navController.popBackStack() }) }
+            composable<CurrencyRoute> { CurrencyScreen(onBack = { navController.popBackStack() }, onChanged = { onOpenLink("currency") }) }
             composable<SecurityRoute> { SecurityScreen(onBack = { navController.popBackStack() }) }
             composable<DataRoute> { DataScreen(onBack = { navController.popBackStack() }) }
             composable<PrivacyRoute> { PrivacyScreen(onBack = { navController.popBackStack() }) }

@@ -43,6 +43,8 @@ class AccountRepository internal constructor(
     private val dao: AccountDao,
     private val clock: Clock,
     private val db: ImpeesaDatabase? = null,
+    /** Picks up balances and bills from messages that arrived before an account was added. */
+    private val replayLedger: suspend (accountId: Long) -> Unit = {},
 ) {
     private val senders by lazy { SenderRegistry.load() }
 
@@ -64,7 +66,7 @@ class AccountRepository internal constructor(
     suspend fun acceptSuggestion(id: Long): Long? {
         val database = requireNotNull(db)
         val capture = database.captureDao()
-        return database.withTransaction {
+        val added = database.withTransaction {
             val suggestion = capture.suggestionById(id) ?: return@withTransaction null
             val institution = senders.find(suggestion.senderCode)
             val isCard = suggestion.looksLikeCard || institution?.kind == InstitutionKind.CARD
@@ -85,6 +87,8 @@ class AccountRepository internal constructor(
             capture.deleteSuggestion(id)
             accountId
         }
+        added?.let { replayLedger(it) }
+        return added
     }
 
     suspend fun dismissSuggestion(id: Long) {

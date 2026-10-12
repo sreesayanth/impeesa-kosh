@@ -153,10 +153,14 @@ class TransactionRepository internal constructor(
                 val editedBits = if (existing.source == TxnSource.MANUAL) 0 else ALL_FIELDS_EDITED
                 if (existing.transferGroupId == null && draft.kind != EntryKind.TRANSFER) {
                     resolver.recordCorrection(existing.merchantKey, existing.categoryId, draft.categoryId, existing.id)
+                    // Fixing the amount or date doesn't make the category the user's choice.
+                    val sameCategory = draft.categoryId == existing.categoryId
                     dao.update(
                         single(draft, source, createdAt, now).copy(
                             id = existing.id,
                             userEditedFields = editedBits,
+                            categorySource = if (sameCategory) existing.categorySource else draft.categoryId?.let { "USER" },
+                            categoryReason = if (sameCategory) existing.categoryReason else null,
                             // Keep what capture knew about the row.
                             counterparty = existing.counterparty,
                             currency = existing.currency,

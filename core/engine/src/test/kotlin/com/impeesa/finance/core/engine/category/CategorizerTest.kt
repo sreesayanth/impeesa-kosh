@@ -121,6 +121,12 @@ class LearningPolicyTest {
     }
 
     @Test
+    fun sameMomentTiesGoToTheLaterSave() {
+        val history = listOf(Correction(3, now, order = 8), Correction(2, now, order = 7))
+        assertEquals(LearnedState.Ambiguous(listOf(3L, 2L)), LearningPolicy.evaluate(history, now))
+    }
+
+    @Test
     fun oldCorrectionsExpire() {
         val history = listOf(Correction(3, now - 200 * day), Correction(2, now - 3 * day), Correction(2, now - day))
         assertEquals(LearnedState.Learned(2), LearningPolicy.evaluate(history, now))

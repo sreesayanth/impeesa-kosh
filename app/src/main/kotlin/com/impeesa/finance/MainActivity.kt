@@ -68,7 +68,11 @@ class MainActivity : FragmentActivity() {
                             RecoveryScreen(error)
                         } else {
                             key(money) {
-                                ImpeesaNavHost(pendingLink = pendingLink, onLinkHandled = { pendingLink.value = null })
+                                ImpeesaNavHost(
+                                    pendingLink = pendingLink,
+                                    onLinkHandled = { pendingLink.value = null },
+                                    onOpenLink = { pendingLink.value = it },
+                                )
                             }
                         }
                         if (locked) LockScreen()

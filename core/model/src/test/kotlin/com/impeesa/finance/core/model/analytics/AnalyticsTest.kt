@@ -251,4 +251,11 @@ class InsightRulesTest {
         assertTrue(InsightKind.LATE_NIGHT in kinds)
         assertTrue(InsightKind.STREAK in kinds)
     }
+
+    @Test
+    fun noStreakForDaysBeforeTrackingStarted() {
+        // Installed today: the five empty days before are missing data, not a streak.
+        val inputs = InsightInputs(today, daily = mapOf(today to Money(3_475_00)), safePerDay = Money(1_826_00))
+        assertTrue(InsightRules.evaluate(inputs).none { it.kind == InsightKind.STREAK })
+    }
 }

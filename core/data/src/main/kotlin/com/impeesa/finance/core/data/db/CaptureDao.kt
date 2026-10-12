@@ -24,6 +24,10 @@ interface CaptureDao {
     @Query("SELECT * FROM raw_messages WHERE id = :id")
     suspend fun raw(id: Long): RawMessageEntity?
 
+    /** SMS texts still kept, oldest first, for replaying an account's balances and bills. */
+    @Query("SELECT * FROM raw_messages WHERE body IS NOT NULL AND source = 'SMS' ORDER BY received_at, id")
+    suspend fun smsWithBody(): List<RawMessageEntity>
+
     @Query("UPDATE raw_messages SET txn_id = :txnId, route = :route WHERE id = :rawId")
     suspend fun relinkRaw(rawId: Long, txnId: Long, route: String)
 

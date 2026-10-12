@@ -174,7 +174,8 @@ object Categorizer {
 }
 
 /** One time the user moved a merchant's transaction to a category. */
-data class Correction(val categoryId: Long, val atMillis: Long)
+/** [order] breaks ties between corrections saved in the same millisecond: higher is later. */
+data class Correction(val categoryId: Long, val atMillis: Long, val order: Long = 0)
 
 /**
  * Turns a merchant's correction history into what to do next time (IMPLEMENTATION_PLAN.md §7.4):
@@ -191,7 +192,7 @@ object LearningPolicy {
         val byCategory = recent.groupBy { it.categoryId }
         if (byCategory.size >= 2) {
             val ranked = byCategory.entries
-                .sortedWith(compareByDescending<Map.Entry<Long, List<Correction>>> { it.value.size }.thenByDescending { e -> e.value.maxOf { it.atMillis } })
+                .sortedWith(compareByDescending<Map.Entry<Long, List<Correction>>> { it.value.size }.thenByDescending { e -> e.value.maxOf { it.atMillis } }.thenByDescending { e -> e.value.maxOf { it.order } })
                 .map { it.key }
             return LearnedState.Ambiguous(ranked)
         }

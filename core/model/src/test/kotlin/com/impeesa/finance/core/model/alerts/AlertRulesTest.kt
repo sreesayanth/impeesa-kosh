@@ -71,6 +71,9 @@ class AlertRulesTest {
         val monday = AlertRules.evaluate(AlertInputs(LocalDate.parse("2026-10-12"), weekly = weekly)).single()
         assertEquals("WEEKLY:2026-10-05", monday.dedupeKey)
         assertEquals("Week of 5 Oct, 11% less than the week before.", monday.body)
+        // A brand-new install has nothing to summarise.
+        val empty = WeeklyInput(Money.ZERO, Money.ZERO)
+        assertTrue(AlertRules.evaluate(AlertInputs(LocalDate.parse("2026-10-12"), weekly = empty)).isEmpty())
     }
 
     @Test
