@@ -39,6 +39,8 @@ data class ReviewCard(
     val message: String?,
     val categories: List<Category>,
     val selectedCategoryId: Long?,
+    /** Set when this may be the same payment as an earlier capture. */
+    val duplicateOf: Long? = null,
 )
 
 @Immutable
@@ -86,6 +88,20 @@ class ReviewViewModel(
         }
     }
 
+    fun mergeDuplicate(card: ReviewCard) {
+        viewModelScope.launch {
+            val target = review.mergeDuplicate(card.id) ?: return@launch
+            undo.post(UndoEvent("Merged into one payment") { review.restoreDuplicate(card.id, target) })
+        }
+    }
+
+    fun keepBoth(card: ReviewCard) {
+        viewModelScope.launch {
+            review.keepBoth(card.id)
+            undo.post(UndoEvent("Kept as a separate payment") { review.backToReview(listOf(card.id)) })
+        }
+    }
+
     fun confirmAll() {
         viewModelScope.launch {
             val ids = review.confirmAll()
@@ -105,7 +121,10 @@ class ReviewViewModel(
             sourceLabel = listOfNotNull("SMS", sender).joinToString(" · "),
             whenLabel = DateLabels.chip(time.toLocalDate(), today) + ", " + DateLabels.time(time.toLocalTime()),
             accountLabel = accountName ?: accountMask?.let { "Account ••$it (not added yet)" } ?: "Account not known",
+            duplicateOf = duplicateOf,
             reasonLabel = when (reviewReason) {
+                "POSSIBLE_DUPLICATE" -> "Possible duplicate of " + (duplicateCounterparty ?: "a payment") +
+                    " from " + (if (duplicateSource == "SMS") "a bank SMS" else "an app notification") + " a few minutes apart"
                 "FOREIGN_CURRENCY" -> "Foreign currency — check the amount in rupees"
                 "FAILED_BUT_DEBITED" -> "Debited, but the bank says it failed"
                 "UNKNOWN_SENDER" -> "From a sender we don't know yet"

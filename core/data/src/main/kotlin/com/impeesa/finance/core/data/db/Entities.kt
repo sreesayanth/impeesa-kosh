@@ -89,6 +89,10 @@ data class TransactionEntity(
     /** SMS sender entity (e.g. HDFCBK) and account digits, kept so a later account can claim the row. */
     @ColumnInfo(name = "sender_code") val senderCode: String? = null,
     @ColumnInfo(name = "account_mask") val accountMask: String? = null,
+    /** Set on a row that may describe the same payment as another (cross-source). */
+    @ColumnInfo(name = "duplicate_of") val duplicateOf: Long? = null,
+    /** How [linkedTxnId] relates: REFUND_OF or REVERSAL_OF. */
+    @ColumnInfo(name = "link_kind") val linkKind: String? = null,
 )
 
 /** A financial message that produced a transaction or useful info. Non-financial messages are never stored. */

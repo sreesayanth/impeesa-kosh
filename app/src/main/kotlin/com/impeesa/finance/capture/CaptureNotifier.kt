@@ -36,8 +36,12 @@ class CaptureNotifier(private val context: Context, private val review: () -> Re
     }
 
     suspend fun onCaptured(result: IngestResult) {
-        if (result !is IngestResult.Logged) return
-        if (result.needsReview) refreshReviewReminder() else showLogged(result)
+        when (result) {
+            is IngestResult.Logged -> if (result.needsReview) refreshReviewReminder() else showLogged(result)
+            // A second source can confirm an item that was waiting for review.
+            is IngestResult.Merged -> refreshReviewReminder()
+            else -> Unit
+        }
     }
 
     @SuppressLint("MissingPermission")

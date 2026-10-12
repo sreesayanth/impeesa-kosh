@@ -117,6 +117,9 @@ data class ReviewRow(
     val accountMask: String?,
     val rawSender: String?,
     val rawBody: String?,
+    val duplicateOf: Long?,
+    val duplicateCounterparty: String?,
+    val duplicateSource: String?,
 )
 
 private const val ROW_COLUMNS = """
@@ -230,10 +233,12 @@ interface TransactionDao {
         SELECT t.id, t.amount_paise AS amountPaise, t.currency, t.direction, t.type, t.counterparty,
                t.category_id AS categoryId, t.occurred_at AS occurredAt, t.review_reason AS reviewReason,
                a.name AS accountName, t.sender_code AS senderCode, t.account_mask AS accountMask,
-               r.sender AS rawSender, r.body AS rawBody
+               r.sender AS rawSender, r.body AS rawBody,
+               t.duplicate_of AS duplicateOf, d.counterparty AS duplicateCounterparty, d.source AS duplicateSource
         FROM transactions t
         LEFT JOIN accounts a ON a.id = t.account_id
         LEFT JOIN raw_messages r ON r.id = t.raw_message_id
+        LEFT JOIN transactions d ON d.id = t.duplicate_of
         WHERE t.status = 'PENDING_REVIEW' AND t.deleted_at IS NULL
         ORDER BY t.occurred_at DESC, t.id DESC
         """,
@@ -258,6 +263,68 @@ interface TransactionDao {
     /** When an account is added, claim earlier captured rows that carry its sender and digits. */
     @Query("UPDATE transactions SET account_id = :accountId WHERE account_id IS NULL AND sender_code = :sender AND account_mask = :mask")
     suspend fun backfillAccount(accountId: Long, sender: String, mask: String): Int
+
+    /** Captured rows from the other source (SMS vs notification) that could be the same payment. */
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE amount_paise = :amountPaise AND direction = :direction
+          AND occurred_at BETWEEN :fromMillis AND :toMillis
+          AND source != :source AND source != 'MANUAL'
+          AND deleted_at IS NULL AND status != 'IGNORED' AND duplicate_of IS NULL
+          AND raw_message_id IS NOT NULL
+        ORDER BY ABS(occurred_at - :aroundMillis)
+        """,
+    )
+    suspend fun crossSourceCandidates(amountPaise: Long, direction: String, source: String, fromMillis: Long, toMillis: Long, aroundMillis: Long): List<TransactionEntity>
+
+    /** The other side of a possible transfer: opposite direction, same amount, no group yet. */
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE amount_paise = :amountPaise AND direction = :direction AND id != :excludeId
+          AND occurred_at BETWEEN :fromMillis AND :toMillis
+          AND transfer_group_id IS NULL AND deleted_at IS NULL AND status != 'IGNORED'
+          AND type IN (:types)
+        ORDER BY ABS(occurred_at - :aroundMillis)
+        LIMIT 5
+        """,
+    )
+    suspend fun transferCounterparts(
+        amountPaise: Long,
+        direction: String,
+        excludeId: Long,
+        types: List<String>,
+        fromMillis: Long,
+        toMillis: Long,
+        aroundMillis: Long,
+    ): List<TransactionEntity>
+
+    /** The purchase a refund belongs to. */
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE merchant_key = :merchantKey AND direction = 'DEBIT' AND type = 'EXPENSE'
+          AND amount_paise >= :minAmountPaise AND occurred_at BETWEEN :fromMillis AND :toMillis
+          AND deleted_at IS NULL AND status = 'CONFIRMED'
+        ORDER BY occurred_at DESC LIMIT 1
+        """,
+    )
+    suspend fun refundOriginal(merchantKey: String, minAmountPaise: Long, fromMillis: Long, toMillis: Long): TransactionEntity?
+
+    /** A "debited but failed" row waiting for its reversal. */
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE amount_paise = :amountPaise AND direction = 'DEBIT' AND review_reason = 'FAILED_BUT_DEBITED'
+          AND occurred_at BETWEEN :fromMillis AND :toMillis AND deleted_at IS NULL AND status != 'IGNORED'
+        ORDER BY occurred_at DESC LIMIT 1
+        """,
+    )
+    suspend fun failedDebit(amountPaise: Long, fromMillis: Long, toMillis: Long): TransactionEntity?
+
+    @Query("SELECT * FROM raw_messages WHERE txn_id = :txnId ORDER BY received_at")
+    fun observeRawForTransaction(txnId: Long): Flow<List<RawMessageEntity>>
 
     /** Same, for an account added by hand: only the digits are known. */
     @Query("UPDATE transactions SET account_id = :accountId WHERE account_id IS NULL AND account_mask = :mask")

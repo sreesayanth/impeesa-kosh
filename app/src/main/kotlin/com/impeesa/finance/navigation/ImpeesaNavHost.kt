@@ -61,6 +61,7 @@ import com.impeesa.finance.feature.onboarding.ImportScreen
 import com.impeesa.finance.feature.onboarding.SmsPermissionScreen
 import com.impeesa.finance.feature.onboarding.WelcomeScreen
 import com.impeesa.finance.feature.review.ReviewScreen
+import com.impeesa.finance.feature.sources.SourcesScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -78,6 +79,7 @@ import com.impeesa.finance.core.ui.R as UiR
 @Serializable data object SmsPermissionRoute
 @Serializable data object ImportRoute
 @Serializable data object ReviewRoute
+@Serializable data object SourcesRoute
 
 private data class Tab(val route: Any, @StringRes val label: Int, @DrawableRes val icon: Int)
 
@@ -113,8 +115,9 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
 
     LaunchedEffect(Unit) {
         container.undo.flow.collect { event ->
-            val result = snackbar.showSnackbar(event.message, actionLabel = "Undo", duration = SnackbarDuration.Short)
-            if (result == SnackbarResult.ActionPerformed) container.ioScope.launch { event.undo() }
+            val undo = event.undo
+            val result = snackbar.showSnackbar(event.message, actionLabel = if (undo != null) "Undo" else null, duration = SnackbarDuration.Short)
+            if (result == SnackbarResult.ActionPerformed && undo != null) container.ioScope.launch { undo() }
         }
     }
 
@@ -142,6 +145,13 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
                 )
             }
             composable<ReviewRoute> { ReviewScreen(onBack = { navController.popBackStack() }) }
+            composable<SourcesRoute> {
+                SourcesScreen(
+                    onBack = { navController.popBackStack() },
+                    onEnableSms = { navController.navigate(SmsPermissionRoute) },
+                    onRescan = { navController.navigate(ImportRoute) },
+                )
+            }
             composable<HomeRoute> {
                 HomeScreen(
                     onAddTransaction = { navController.navigate(AddTransactionRoute()) },
@@ -150,6 +160,7 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
                     onAccounts = { navController.switchTab(AccountsRoute) },
                     onReview = { navController.navigate(ReviewRoute) },
                     onEnableSms = { navController.navigate(SmsPermissionRoute) },
+                    onAutoCapture = { navController.navigate(SourcesRoute) },
                 )
             }
             composable<InsightsRoute> { ComingSoonScreen(title = "Insights", phase = "Phase 6") }

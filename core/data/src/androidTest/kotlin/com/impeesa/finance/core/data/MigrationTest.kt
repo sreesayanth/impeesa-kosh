@@ -36,6 +36,23 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun version2To3AddsDuplicateColumns() {
+        helper.createDatabase(DB, 2).apply {
+            execSQL(
+                "INSERT INTO transactions (id, account_id, amount_paise, currency, direction, type, category_id, counterparty, occurred_at, local_date, channel, status, source, confidence, excluded_from_spending, user_edited_fields, created_at, updated_at) " +
+                    "VALUES (7, NULL, 48600, 'INR', 'DEBIT', 'EXPENSE', NULL, 'Swiggy', 0, 20261011, 'UPI', 'CONFIRMED', 'SMS', 0.95, 0, 0, 0, 0)",
+            )
+            close()
+        }
+        val db = helper.runMigrationsAndValidate(DB, 3, true)
+        db.query("SELECT counterparty, duplicate_of FROM transactions WHERE id = 7").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("Swiggy", cursor.getString(0))
+            assertEquals(true, cursor.isNull(1))
+        }
+    }
+
     private companion object {
         const val DB = "migration-test"
     }

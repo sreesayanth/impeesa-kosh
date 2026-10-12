@@ -86,8 +86,8 @@ fun ReviewScreen(onBack: () -> Unit) {
                     card = card,
                     remaining = state.total,
                     onPick = { viewModel.pickCategory(card.id, it) },
-                    onConfirm = { viewModel.confirm(card) },
-                    onIgnore = { viewModel.ignore(card) },
+                    onConfirm = { if (card.duplicateOf != null) viewModel.keepBoth(card) else viewModel.confirm(card) },
+                    onIgnore = { if (card.duplicateOf != null) viewModel.mergeDuplicate(card) else viewModel.ignore(card) },
                 )
             }
         }
@@ -163,7 +163,8 @@ private fun CurrentCard(
             )
         }
         Text(card.reasonLabel, style = ImpeesaTheme.type.caption, color = colors.amber)
-        if (card.categories.isNotEmpty()) {
+        val isDuplicate = card.duplicateOf != null
+        if (card.categories.isNotEmpty() && !isDuplicate) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SectionLabel("Category")
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -188,9 +189,9 @@ private fun CurrentCard(
                     .clickable(role = Role.Button, onClick = onIgnore),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("Not spending", style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
+                Text(if (isDuplicate) "Same payment" else "Not spending", style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
             }
-            PrimaryButton(text = "Confirm", onClick = onConfirm, modifier = Modifier.weight(1f).height(52.dp))
+            PrimaryButton(text = if (isDuplicate) "Keep both" else "Confirm", onClick = onConfirm, modifier = Modifier.weight(1f).height(52.dp))
         }
     }
 }

@@ -36,6 +36,28 @@ class ReviewRepository internal constructor(
         return ids
     }
 
+    /** "Same payment": folds a possible duplicate into the original. Returns what [restoreDuplicate] needs. */
+    suspend fun mergeDuplicate(id: Long): Long? = db.withTransaction {
+        val row = dao.getById(id) ?: return@withTransaction null
+        val target = row.duplicateOf ?: return@withTransaction null
+        db.captureDao().moveRaw(fromTxn = id, toTxn = target)
+        dao.softDelete(listOf(id), clock.millis())
+        target
+    }
+
+    /** Undo for [mergeDuplicate]. */
+    suspend fun restoreDuplicate(id: Long, target: Long) = db.withTransaction {
+        dao.restore(listOf(id), clock.millis())
+        // mergeDuplicate moved this row's message onto the original; give it back.
+        dao.getById(id)?.rawMessageId?.let { rawId -> db.captureDao().relinkRaw(rawId, id, "REVIEW") }
+        Unit
+    }
+
+    /** "Different payments": keeps both and confirms the new one. */
+    suspend fun keepBoth(id: Long) = db.withTransaction {
+        dao.getById(id)?.let { dao.update(it.copy(duplicateOf = null, status = TxnStatus.CONFIRMED, reviewReason = null, updatedAt = clock.millis())) }
+    }
+
     /** Puts items back in the queue (undo). */
     suspend fun backToReview(ids: List<Long>) = dao.setStatus(ids, TxnStatus.PENDING_REVIEW.name, clock.millis())
 }

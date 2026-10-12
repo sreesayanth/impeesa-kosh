@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.impeesa.finance.core.data.AccountRepository
 import com.impeesa.finance.core.data.CategoryRepository
+import com.impeesa.finance.core.data.MessageSourceRef
+import com.impeesa.finance.core.data.capture.CaptureRepository
 import com.impeesa.finance.core.data.TransactionRepository
 import com.impeesa.finance.core.model.EntryKind
 import com.impeesa.finance.core.model.Money
@@ -43,6 +45,7 @@ data class DetailUiState(
     val rows: List<DetailRow> = emptyList(),
     val originalMessage: String? = null,
     val pendingReview: Boolean = false,
+    val sources: List<MessageSourceRef> = emptyList(),
 )
 
 class DetailViewModel(
@@ -50,6 +53,7 @@ class DetailViewModel(
     private val transactions: TransactionRepository,
     accounts: AccountRepository,
     categories: CategoryRepository,
+    private val capture: CaptureRepository,
     private val undo: UndoBus,
     clock: Clock,
 ) : ViewModel() {
@@ -63,12 +67,18 @@ class DetailViewModel(
         detail?.rawMessageId?.let(transactions::observeOriginalMessage) ?: flowOf(null)
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val sources: Flow<List<MessageSourceRef>> = transactions.observeDetail(id).flatMapLatest { detail ->
+        detail?.let { transactions.observeSources(it.id) } ?: flowOf(emptyList())
+    }
+
     val state: StateFlow<DetailUiState> = combine(
         transactions.observeDetail(id),
         accounts.observeAccounts(),
         categories.observeAll(),
         original,
-    ) { detail, accountList, categoryList, message ->
+        sources,
+    ) { detail, accountList, categoryList, message, sourceList ->
         if (detail == null) return@combine DetailUiState(loading = false, missing = true)
         val category = categoryList.firstOrNull { it.id == detail.categoryId }
         val account = accountList.firstOrNull { it.id == detail.accountId }
@@ -103,10 +113,18 @@ class DetailViewModel(
             },
             tileColor = category?.color,
             rows = rows,
-            originalMessage = message,
+            originalMessage = message.takeIf { sourceList.size <= 1 },
             pendingReview = detail.pendingReview,
+            sources = sourceList.takeIf { it.size > 1 }.orEmpty(),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DetailUiState())
+
+    /** "Not the same payment": splits a merged message back into its own transaction. */
+    fun split(rawId: Long) {
+        viewModelScope.launch {
+            if (capture.unmerge(rawId) != null) undo.post(UndoEvent("Split into two transactions"))
+        }
+    }
 
     fun delete() {
         viewModelScope.launch {

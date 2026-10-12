@@ -14,9 +14,16 @@ import com.impeesa.finance.core.engine.EngineContext
 import com.impeesa.finance.core.engine.KnownAccount
 import com.impeesa.finance.core.engine.MessageEnvelope
 import com.impeesa.finance.core.engine.MessageSource
+import com.impeesa.finance.core.engine.MovementKind
 import com.impeesa.finance.core.engine.Route
 import com.impeesa.finance.core.engine.SourceHash
+import com.impeesa.finance.core.engine.TransferHints
+import com.impeesa.finance.core.engine.account.AccountResolver
 import com.impeesa.finance.core.engine.classify.MessageType
+import com.impeesa.finance.core.engine.merchant.MerchantSource
+import com.impeesa.finance.core.engine.registry.AppKind
+import com.impeesa.finance.core.engine.registry.AppRegistry
+import com.impeesa.finance.core.engine.registry.PaymentApp
 import com.impeesa.finance.core.model.AccountType
 import com.impeesa.finance.core.model.Channel
 import com.impeesa.finance.core.model.DateKey
@@ -31,12 +38,17 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.Clock
 import java.time.Duration
+import java.time.Instant
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.util.UUID
 
 /** What happened to one message. */
 sealed interface IngestResult {
     data object Duplicate : IngestResult
+
+    /** Same payment already captured from another source; it was enriched instead of duplicated. */
+    data class Merged(val transactionId: Long) : IngestResult
     data class Dropped(val type: MessageType) : IngestResult
     data class Info(val type: MessageType) : IngestResult
     data class Logged(
@@ -62,6 +74,9 @@ data class ImportProgress(
 
 data class CaptureStats(val logged: Int, val review: Int, val skipped: Map<String, Int>)
 
+/** A payment app and whether Impeesa reads its notifications. */
+data class WatchedApp(val app: PaymentApp, val enabled: Boolean)
+
 /**
  * Turns incoming messages into transactions (IMPLEMENTATION_PLAN.md §6, §4.2). One writer at a time:
  * a bank SMS and an app notification for the same payment can arrive together, and de-duplication
@@ -74,12 +89,29 @@ class CaptureRepository internal constructor(
     private val clock: Clock,
 ) {
     private val engine by lazy(engineProvider)
+    private val apps by lazy { AppRegistry.load() }
     private val inbox = SmsInboxReader(context)
     private val prefs = context.getSharedPreferences("capture", Context.MODE_PRIVATE)
     private val writer = Mutex()
     private val capture = db.captureDao()
     private val transactions = db.transactionDao()
     private val zone: ZoneId get() = clock.zone
+
+    // ---------------------------------------------------------------- settings
+
+    /** Payment apps Impeesa can read, with the user's on/off choice. Messaging apps (RCS) are off by default. */
+    fun watchedApps(): List<WatchedApp> = apps.all.map { WatchedApp(it, isEnabled(it)) }
+
+    fun isWatched(packageName: String): Boolean = apps.find(packageName)?.let(::isEnabled) ?: false
+
+    fun setAppEnabled(packageName: String, enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_APP_PREFIX + packageName, enabled).apply()
+    }
+
+    private fun isEnabled(app: PaymentApp): Boolean =
+        prefs.getBoolean(KEY_APP_PREFIX + app.packageName, app.kind != AppKind.MESSAGING)
+
+    // ---------------------------------------------------------------- entry points
 
     suspend fun ingest(envelope: MessageEnvelope): IngestResult = writer.withLock { ingestLocked(envelope, loadContext()) }
 
@@ -116,6 +148,31 @@ class CaptureRepository internal constructor(
         return importInbox(since)
     }
 
+    /**
+     * Undoes an automatic merge: the message becomes its own transaction again
+     * ("not the same payment"). Returns the new transaction id.
+     */
+    suspend fun unmerge(rawId: Long): Long? = writer.withLock {
+        db.withTransaction {
+            val raw = capture.raw(rawId) ?: return@withTransaction null
+            if (raw.route != ROUTE_MERGED || raw.body == null) return@withTransaction null
+            val envelope = MessageEnvelope(
+                source = MessageSource.valueOf(raw.source),
+                sender = raw.sender,
+                body = raw.body,
+                receivedAt = Instant.ofEpochMilli(raw.receivedAt),
+                title = raw.title,
+            )
+            val context = loadContext()
+            val analysis = engine.analyze(envelope, context)
+            val amount = analysis.amount ?: return@withTransaction null
+            val accountId = (analysis.account as? AccountMatch.Matched)?.accountId
+            val id = insertTransaction(envelope, analysis, amount, analysis.direction ?: Direction.DEBIT, accountId, rawId, context, duplicateOf = null)
+            capture.relinkRaw(rawId, id, analysis.route.name)
+            id
+        }
+    }
+
     fun observeStats(month: Int): Flow<CaptureStats> = capture.observeStats(month).map { rows ->
         CaptureStats(
             logged = rows.filter { it.outcome == Route.AUTO_LOG.name }.sumOf { it.count },
@@ -123,6 +180,8 @@ class CaptureRepository internal constructor(
             skipped = rows.filter { it.outcome.startsWith("DROP:") }.groupBy { it.outcome.removePrefix("DROP:") }.mapValues { (_, v) -> v.sumOf { it.count } },
         )
     }
+
+    // ---------------------------------------------------------------- pipeline
 
     private suspend fun loadContext(): EngineContext {
         val identifiers = capture.identifiers().groupBy { it.accountId }
@@ -134,7 +193,8 @@ class CaptureRepository internal constructor(
                 isCard = account.type == AccountType.CARD,
             )
         }
-        return EngineContext(accounts = accounts, zone = zone)
+        val disabledApps = apps.all.filterNot(::isEnabled).map { it.packageName }.toSet()
+        return EngineContext(accounts = accounts, blockedSenders = disabledApps, zone = zone)
     }
 
     private suspend fun ingestLocked(envelope: MessageEnvelope, context: EngineContext): IngestResult = db.withTransaction {
@@ -162,13 +222,6 @@ class CaptureRepository internal constructor(
 
         val amount = analysis.amount ?: return@withTransaction IngestResult.Info(analysis.type)
         val direction = analysis.direction ?: Direction.DEBIT
-        analysis.reference?.let { ref ->
-            transactions.findByReference(ref, amount.paise, direction.name)?.let { existing ->
-                capture.linkRaw(rawId, existing)
-                return@withTransaction IngestResult.Duplicate
-            }
-        }
-
         val accountId = when (val match = analysis.account) {
             is AccountMatch.Matched -> match.accountId
             is AccountMatch.Suggested -> {
@@ -177,17 +230,104 @@ class CaptureRepository internal constructor(
             }
             AccountMatch.Unknown -> null
         }
-        val txnId = insertTransaction(envelope, analysis, amount, direction, accountId, rawId)
+        val occurred = occurredAt(envelope, analysis)
+
+        // 1. Exact: same bank reference.
+        analysis.reference?.let { ref ->
+            transactions.findByReference(ref, amount.paise, direction.name)?.let { existingId ->
+                transactions.getById(existingId)?.let { mergeInto(it, analysis, envelope, accountId, rawId) }
+                return@withTransaction IngestResult.Merged(existingId)
+            }
+        }
+
+        // 2. Same payment seen by the other source (bank SMS vs payment-app notification).
+        var duplicateOf: Long? = null
+        val window = Duration.ofMinutes(DUPLICATE_WINDOW_MINUTES).toMillis()
+        val around = occurred.toInstant().toEpochMilli()
+        val candidates = transactions.crossSourceCandidates(
+            amountPaise = amount.paise,
+            direction = direction.name,
+            source = txnSource(envelope).name,
+            fromMillis = around - window,
+            toMillis = around + window,
+            aroundMillis = around,
+        ).filter { accountsCompatible(it, accountId, analysis.mask) }
+        if (candidates.isNotEmpty()) {
+            val best = candidates.first()
+            if (candidates.size == 1 && !merchantsConflict(best, analysis)) {
+                mergeInto(best, analysis, envelope, accountId, rawId)
+                return@withTransaction IngestResult.Merged(best.id)
+            }
+            duplicateOf = best.id
+        }
+
+        val txnId = insertTransaction(envelope, analysis, amount, direction, accountId, rawId, context, duplicateOf)
         capture.linkRaw(rawId, txnId)
         IngestResult.Logged(
             transactionId = txnId,
-            needsReview = analysis.route == Route.REVIEW,
+            needsReview = analysis.route == Route.REVIEW || duplicateOf != null || analysis.currency != "INR",
             amount = amount,
             direction = direction,
             title = analysis.merchant?.displayName,
             senderEntity = analysis.senderEntity,
             mask = analysis.mask,
         )
+    }
+
+    private fun occurredAt(envelope: MessageEnvelope, analysis: Analysis): ZonedDateTime {
+        val receivedLocal = envelope.receivedAt.atZone(zone)
+        return analysis.date
+            ?.takeIf { it != receivedLocal.toLocalDate() }
+            ?.atTime(receivedLocal.toLocalTime())
+            ?.atZone(zone)
+            ?: receivedLocal
+    }
+
+    private fun txnSource(envelope: MessageEnvelope) =
+        if (envelope.source == MessageSource.SMS) TxnSource.SMS else TxnSource.NOTIFICATION
+
+    private fun accountsCompatible(existing: TransactionEntity, accountId: Long?, mask: String?): Boolean {
+        if (existing.accountId != null && accountId != null && existing.accountId != accountId) return false
+        val a = existing.accountMask
+        return a == null || mask == null || AccountResolver.masksMatch(a, mask)
+    }
+
+    /** Two different known businesses means two different payments. */
+    private fun merchantsConflict(existing: TransactionEntity, analysis: Analysis): Boolean {
+        val newMerchant = analysis.merchant ?: return false
+        if (newMerchant.source != MerchantSource.DICTIONARY || existing.categorySource != "DICTIONARY") return false
+        return existing.merchantKey != null && existing.merchantKey != newMerchant.key
+    }
+
+    /**
+     * Adds what the second source knows to the first: the bank SMS knows the account and reference,
+     * the payment app knows the clean merchant name. User edits are never overwritten.
+     */
+    private suspend fun mergeInto(existing: TransactionEntity, analysis: Analysis, envelope: MessageEnvelope, accountId: Long?, rawId: Long) {
+        var merged = existing
+        if (merged.accountId == null && accountId != null) merged = merged.copy(accountId = accountId)
+        if (merged.senderCode == null) merged = merged.copy(senderCode = analysis.senderEntity)
+        if (merged.accountMask == null) merged = merged.copy(accountMask = analysis.mask)
+        if (merged.reference == null) merged = merged.copy(reference = analysis.reference)
+
+        val merchant = analysis.merchant
+        val editable = merged.userEditedFields == 0 && (merged.type == TxnType.EXPENSE || merged.type == TxnType.INCOME)
+        if (merchant != null && editable) {
+            val cleaner = merged.counterparty == null ||
+                (merchant.source == MerchantSource.DICTIONARY && merged.categorySource != "DICTIONARY") ||
+                (envelope.source == MessageSource.NOTIFICATION && merchant.source == MerchantSource.DICTIONARY)
+            if (cleaner) merged = merged.copy(counterparty = merchant.displayName, merchantKey = merchant.key)
+            val category = merchant.categoryName
+            if (merged.type == TxnType.EXPENSE && merged.categorySource != "USER" && category != null && (merged.categoryId == null || cleaner)) {
+                db.categoryDao().idByName(category)?.let { merged = merged.copy(categoryId = it, categorySource = "DICTIONARY") }
+            }
+        }
+        // Two independent sources agree: no need to ask the user about a low-confidence capture.
+        if (merged.status == TxnStatus.PENDING_REVIEW && merged.reviewReason in AGREEMENT_RESOLVES && analysis.route == Route.AUTO_LOG) {
+            merged = merged.copy(status = TxnStatus.CONFIRMED, reviewReason = null)
+        }
+        transactions.update(merged.copy(updatedAt = clock.millis()))
+        capture.relinkRaw(rawId, existing.id, ROUTE_MERGED)
     }
 
     private suspend fun insertTransaction(
@@ -197,29 +337,33 @@ class CaptureRepository internal constructor(
         direction: Direction,
         accountId: Long?,
         rawId: Long,
+        context: EngineContext,
+        duplicateOf: Long?,
     ): Long {
-        val receivedLocal = envelope.receivedAt.atZone(zone)
-        val occurred = analysis.date
-            ?.takeIf { it != receivedLocal.toLocalDate() }
-            ?.atTime(receivedLocal.toLocalTime())
-            ?.atZone(zone)
-            ?: receivedLocal
+        val occurred = occurredAt(envelope, analysis)
         val now = clock.millis()
         val categories = db.categoryDao()
-        val isAtm = analysis.channel == Channel.ATM && direction == Direction.DEBIT
+        val accountIsCard = context.accounts.any { it.id == accountId && it.isCard }
+        val movement = TransferHints.classify(envelope, analysis, accountIsCard)
+        val isTransfer = movement == MovementKind.ATM_WITHDRAWAL || movement == MovementKind.CARD_PAYMENT || movement == MovementKind.WALLET_TOPUP
         val type = when {
-            isAtm -> TxnType.TRANSFER
+            isTransfer -> TxnType.TRANSFER
             analysis.type == MessageType.REFUND -> TxnType.REFUND
             direction == Direction.CREDIT -> TxnType.INCOME
             else -> TxnType.EXPENSE
         }
-        val categoryName = when {
-            isAtm -> "Cash withdrawal"
-            type == TxnType.REFUND -> "Refunds"
-            type == TxnType.EXPENSE -> analysis.merchant?.categoryName
-            else -> null
+        val categoryName = when (movement) {
+            MovementKind.ATM_WITHDRAWAL -> "Cash withdrawal"
+            MovementKind.CARD_PAYMENT -> "Card payments"
+            MovementKind.WALLET_TOPUP -> "Wallet top-up"
+            else -> when (type) {
+                TxnType.REFUND -> "Refunds"
+                TxnType.EXPENSE -> analysis.merchant?.categoryName
+                else -> null
+            }
         }
         val foreign = analysis.currency != "INR"
+        val needsReview = analysis.route == Route.REVIEW || foreign || duplicateOf != null
         val base = TransactionEntity(
             accountId = accountId,
             amountPaise = amount.paise,
@@ -228,55 +372,144 @@ class CaptureRepository internal constructor(
             type = type,
             categoryId = categoryName?.let { categories.idByName(it) },
             categorySource = if (categoryName != null) "DICTIONARY" else null,
-            counterparty = analysis.merchant?.displayName ?: analysis.counterparty,
+            counterparty = when (movement) {
+                MovementKind.ATM_WITHDRAWAL -> "ATM withdrawal"
+                MovementKind.CARD_PAYMENT -> "Credit card payment"
+                else -> analysis.merchant?.displayName ?: analysis.counterparty
+            },
             occurredAt = occurred.toInstant().toEpochMilli(),
             localDate = DateKey.of(occurred.toLocalDate()),
             channel = analysis.channel,
             reference = analysis.reference,
-            status = if (analysis.route == Route.REVIEW || foreign) TxnStatus.PENDING_REVIEW else TxnStatus.CONFIRMED,
-            source = if (envelope.source == MessageSource.SMS) TxnSource.SMS else TxnSource.NOTIFICATION,
+            status = if (needsReview) TxnStatus.PENDING_REVIEW else TxnStatus.CONFIRMED,
+            source = txnSource(envelope),
             confidence = analysis.confidence.toFloat(),
-            excludedFromSpending = isAtm,
+            excludedFromSpending = isTransfer,
             createdAt = now,
             updatedAt = now,
-            reviewReason = analysis.reviewReason?.name,
+            reviewReason = when {
+                duplicateOf != null -> REASON_POSSIBLE_DUPLICATE
+                else -> analysis.reviewReason?.name
+            },
             rawMessageId = rawId,
             merchantKey = analysis.merchant?.key,
             senderCode = analysis.senderEntity,
             accountMask = analysis.mask,
+            duplicateOf = duplicateOf,
         )
-        if (!isAtm) return transactions.insert(base)
 
-        // ATM withdrawal: money moves from the bank to the cash wallet; it is not spending.
+        if (movement == MovementKind.ATM_WITHDRAWAL) {
+            // Money moves from the bank to the cash wallet; it is not spending.
+            val group = UUID.randomUUID().toString()
+            val outId = transactions.insert(base.copy(transferGroupId = group))
+            db.accountDao().cashAccountId()?.let { cash ->
+                transactions.insert(
+                    base.copy(accountId = cash, direction = Direction.CREDIT, transferGroupId = group, senderCode = null, accountMask = null, rawMessageId = null),
+                )
+            }
+            return outId
+        }
+
+        val id = transactions.insert(base)
+        if (duplicateOf == null) link(base.copy(id = id), movement)
+        return id
+    }
+
+    // ---------------------------------------------------------------- linking (§6.10)
+
+    private suspend fun link(txn: TransactionEntity, movement: MovementKind) {
+        when {
+            movement == MovementKind.CARD_PAYMENT -> pairTransfer(txn, Duration.ofDays(3), listOf(TxnType.TRANSFER.name)) { it.excludedFromSpending }
+            movement == MovementKind.REVERSAL -> linkReversal(txn)
+            txn.type == TxnType.REFUND -> linkRefund(txn)
+            (txn.type == TxnType.EXPENSE || txn.type == TxnType.INCOME) && txn.status == TxnStatus.CONFIRMED &&
+                txn.accountId != null && txn.categorySource != "DICTIONARY" ->
+                pairTransfer(txn, Duration.ofHours(24), listOf(TxnType.EXPENSE.name, TxnType.INCOME.name)) { other ->
+                    // Own-account transfer: both sides on (different) known accounts, neither a known business.
+                    other.accountId != null && other.accountId != txn.accountId && other.categorySource != "DICTIONARY" &&
+                        other.status == TxnStatus.CONFIRMED && other.source != TxnSource.MANUAL
+                }
+        }
+    }
+
+    private suspend fun pairTransfer(
+        txn: TransactionEntity,
+        window: Duration,
+        types: List<String>,
+        accept: (TransactionEntity) -> Boolean,
+    ) {
+        val opposite = if (txn.direction == Direction.DEBIT) Direction.CREDIT else Direction.DEBIT
+        val candidates = transactions.transferCounterparts(
+            amountPaise = txn.amountPaise,
+            direction = opposite.name,
+            excludeId = txn.id,
+            types = types,
+            fromMillis = txn.occurredAt - window.toMillis(),
+            toMillis = txn.occurredAt + window.toMillis(),
+            aroundMillis = txn.occurredAt,
+        ).filter(accept)
+        // Only link when the match is unambiguous.
+        val other = candidates.singleOrNull() ?: return
         val group = UUID.randomUUID().toString()
-        val outId = transactions.insert(base.copy(transferGroupId = group, counterparty = "ATM withdrawal"))
-        db.accountDao().cashAccountId()?.let { cash ->
-            transactions.insert(
-                base.copy(
-                    accountId = cash,
-                    direction = Direction.CREDIT,
+        val transfersId = db.categoryDao().idByName(if (txn.type == TxnType.TRANSFER) "Card payments" else "Transfers")
+        listOf(txn, other).forEach { row ->
+            transactions.update(
+                row.copy(
+                    type = TxnType.TRANSFER,
                     transferGroupId = group,
-                    counterparty = "ATM withdrawal",
-                    senderCode = null,
-                    accountMask = null,
-                    rawMessageId = null,
+                    excludedFromSpending = true,
+                    categoryId = if (row.categorySource == "USER") row.categoryId else transfersId ?: row.categoryId,
+                    updatedAt = clock.millis(),
                 ),
             )
         }
-        return outId
     }
+
+    private suspend fun linkRefund(refund: TransactionEntity) {
+        val key = refund.merchantKey ?: return
+        val original = transactions.refundOriginal(
+            merchantKey = key,
+            minAmountPaise = refund.amountPaise,
+            fromMillis = refund.occurredAt - Duration.ofDays(REFUND_WINDOW_DAYS).toMillis(),
+            toMillis = refund.occurredAt,
+        ) ?: return
+        transactions.update(
+            refund.copy(
+                linkedTxnId = original.id,
+                linkKind = LINK_REFUND,
+                // Counted against the original category, so analytics can net it out.
+                categoryId = original.categoryId ?: refund.categoryId,
+                updatedAt = clock.millis(),
+            ),
+        )
+    }
+
+    /** "Debited but failed" + "reversed": the two cancel out and disappear from totals and review. */
+    private suspend fun linkReversal(credit: TransactionEntity) {
+        val failed = transactions.failedDebit(
+            amountPaise = credit.amountPaise,
+            fromMillis = credit.occurredAt - Duration.ofDays(REVERSAL_WINDOW_DAYS).toMillis(),
+            toMillis = credit.occurredAt,
+        ) ?: return
+        val now = clock.millis()
+        transactions.update(failed.copy(status = TxnStatus.IGNORED, linkedTxnId = credit.id, linkKind = LINK_REVERSAL, updatedAt = now))
+        transactions.update(credit.copy(status = TxnStatus.IGNORED, linkedTxnId = failed.id, linkKind = LINK_REVERSAL, updatedAt = now))
+    }
+
+    // ---------------------------------------------------------------- helpers
 
     private suspend fun rememberSuggestion(match: AccountMatch.Suggested, analysis: Analysis) {
         val sender = match.senderEntity ?: return
         val now = clock.millis()
         val existing = capture.suggestion(sender, match.mask)
+        val looksLikeCard = analysis.channel == Channel.CARD
         if (existing == null) {
             capture.insertSuggestion(
                 AccountSuggestionEntity(
                     senderCode = sender,
                     mask = match.mask,
                     institution = analysis.senderEntity,
-                    looksLikeCard = analysis.channel == Channel.CARD,
+                    looksLikeCard = looksLikeCard,
                     sightings = 1,
                     firstSeen = now,
                     lastSeen = now,
@@ -284,11 +517,7 @@ class CaptureRepository internal constructor(
             )
         } else {
             capture.updateSuggestion(
-                existing.copy(
-                    sightings = existing.sightings + 1,
-                    lastSeen = now,
-                    looksLikeCard = existing.looksLikeCard || analysis.channel == Channel.CARD,
-                ),
+                existing.copy(sightings = existing.sightings + 1, lastSeen = now, looksLikeCard = existing.looksLikeCard || looksLikeCard),
             )
         }
     }
@@ -302,9 +531,19 @@ class CaptureRepository internal constructor(
         }
     }
 
-    private companion object {
-        const val KEY_WATERMARK = "inbox_watermark"
-        const val PARSER_VERSION = 1
-        const val PROGRESS_EVERY = 50
+    companion object {
+        const val REASON_POSSIBLE_DUPLICATE = "POSSIBLE_DUPLICATE"
+        const val ROUTE_MERGED = "MERGED"
+        const val LINK_REFUND = "REFUND_OF"
+        const val LINK_REVERSAL = "REVERSAL_OF"
+
+        private const val KEY_WATERMARK = "inbox_watermark"
+        private const val KEY_APP_PREFIX = "app_enabled:"
+        private const val PARSER_VERSION = 1
+        private const val PROGRESS_EVERY = 50
+        private const val DUPLICATE_WINDOW_MINUTES = 15L
+        private const val REFUND_WINDOW_DAYS = 90L
+        private const val REVERSAL_WINDOW_DAYS = 7L
+        private val AGREEMENT_RESOLVES = setOf("LOW_CONFIDENCE", "UNKNOWN_SENDER")
     }
 }

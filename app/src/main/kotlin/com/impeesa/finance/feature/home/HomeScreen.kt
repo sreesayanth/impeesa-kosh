@@ -8,7 +8,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.impeesa.finance.capture.CaptureHealth
 import com.impeesa.finance.capture.SmsPermission
+import com.impeesa.finance.core.ui.component.CircleIconButton
+import com.impeesa.finance.core.ui.R as UiR
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -55,6 +58,7 @@ fun HomeScreen(
     onAccounts: () -> Unit,
     onReview: () -> Unit,
     onEnableSms: () -> Unit,
+    onAutoCapture: () -> Unit,
 ) {
     val container = LocalAppContainer.current
     val context = LocalContext.current
@@ -62,8 +66,10 @@ fun HomeScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = ImpeesaTheme.colors
     var smsAllowed by remember { mutableStateOf(SmsPermission.granted(context)) }
+    var listenerPaused by remember { mutableStateOf(CaptureHealth.listenerPaused(context)) }
     LifecycleResumeEffect(Unit) {
         smsAllowed = SmsPermission.granted(context)
+        listenerPaused = CaptureHealth.listenerPaused(context)
         onPauseOrDispose { }
     }
 
@@ -72,7 +78,7 @@ fun HomeScreen(
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        item(key = "header") { Header(state.greeting) }
+        item(key = "header") { Header(state.greeting, onAutoCapture) }
         if (state.loading) return@LazyColumn
 
         if (!smsAllowed) {
@@ -83,6 +89,17 @@ fun HomeScreen(
                     action = "Turn on",
                     tint = colors.coral,
                     onClick = onEnableSms,
+                )
+            }
+        }
+        if (listenerPaused) {
+            item(key = "paused") {
+                Banner(
+                    title = "Payment-app alerts are paused",
+                    body = "Your phone stopped Impeesa from reading GPay/PhonePe notifications. Bank SMS still work.",
+                    action = "Fix",
+                    tint = colors.amber,
+                    onClick = onAutoCapture,
                 )
             }
         }
@@ -162,7 +179,7 @@ private fun Banner(title: String, body: String, action: String?, tint: Color, on
 }
 
 @Composable
-private fun Header(greeting: Greeting) {
+private fun Header(greeting: Greeting, onAutoCapture: () -> Unit) {
     val colors = ImpeesaTheme.colors
     val text = when (greeting) {
         Greeting.MORNING -> R.string.greeting_morning
@@ -173,10 +190,11 @@ private fun Header(greeting: Greeting) {
         Box(Modifier.size(44.dp).clip(CircleShape).background(colors.raised), contentAlignment = Alignment.Center) {
             Text("IK", style = ImpeesaTheme.type.label, color = colors.lime)
         }
-        Column {
+        Column(Modifier.weight(1f)) {
             Text(stringResource(text), style = ImpeesaTheme.type.caption, color = colors.textSecondary)
             Text(stringResource(R.string.app_name), style = ImpeesaTheme.type.title, color = colors.textPrimary)
         }
+        CircleIconButton(icon = UiR.drawable.ic_tune, contentDescription = "Auto-capture settings", onClick = onAutoCapture)
     }
 }
 

@@ -4,10 +4,10 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
-/** A message with an Undo action, shown by the root snackbar host. */
-class UndoEvent(val message: String, val undo: suspend () -> Unit)
+/** A short message for the root snackbar, with an Undo action when [undo] is set. */
+class UndoEvent(val message: String, val undo: (suspend () -> Unit)? = null)
 
-/** Lets any screen ask for an "Undo" snackbar, even one that is closing. */
+/** Lets any screen ask for a snackbar, even one that is closing. */
 class UndoBus {
     private val events = MutableSharedFlow<UndoEvent>(extraBufferCapacity = 4)
     val flow: SharedFlow<UndoEvent> = events.asSharedFlow()

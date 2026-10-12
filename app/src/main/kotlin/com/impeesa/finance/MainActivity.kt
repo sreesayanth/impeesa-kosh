@@ -7,6 +7,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
+import com.impeesa.finance.capture.CaptureHealth
 import com.impeesa.finance.capture.InboxReconcileWorker
 import com.impeesa.finance.capture.SmsPermission
 import com.impeesa.finance.core.ui.theme.ImpeesaTheme
@@ -43,6 +44,7 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         // Catch messages that arrived while the app was closed.
         if (SmsPermission.granted(this)) InboxReconcileWorker.runNow(this)
+        CaptureHealth.requestRebind(this)
     }
 
     companion object {

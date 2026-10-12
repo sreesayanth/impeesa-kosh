@@ -21,6 +21,15 @@ interface CaptureDao {
     @Query("SELECT * FROM raw_messages WHERE id = :id")
     fun observeRaw(id: Long): Flow<RawMessageEntity?>
 
+    @Query("SELECT * FROM raw_messages WHERE id = :id")
+    suspend fun raw(id: Long): RawMessageEntity?
+
+    @Query("UPDATE raw_messages SET txn_id = :txnId, route = :route WHERE id = :rawId")
+    suspend fun relinkRaw(rawId: Long, txnId: Long, route: String)
+
+    @Query("UPDATE raw_messages SET txn_id = :toTxn WHERE txn_id = :fromTxn")
+    suspend fun moveRaw(fromTxn: Long, toTxn: Long)
+
     /** Plain UPDATE-then-INSERT so it works on every SQLite version, not only those with UPSERT. */
     @Query("UPDATE capture_stats SET count = count + 1 WHERE month = :month AND source = :source AND outcome = :outcome")
     suspend fun bumpStat(month: Int, source: String, outcome: String): Int

@@ -52,7 +52,7 @@ import com.impeesa.finance.core.ui.theme.ImpeesaTheme
 fun DetailScreen(id: Long, onBack: () -> Unit, onEdit: (Long) -> Unit, onReview: () -> Unit) {
     val container = LocalAppContainer.current
     val viewModel = viewModel {
-        DetailViewModel(id, container.transactionRepository, container.accountRepository, container.categoryRepository, container.undo, container.clock)
+        DetailViewModel(id, container.transactionRepository, container.accountRepository, container.categoryRepository, container.captureRepository, container.undo, container.clock)
     }
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(viewModel) { viewModel.close.collect { onBack() } }
@@ -133,6 +133,39 @@ fun DetailScreen(id: Long, onBack: () -> Unit, onEdit: (Long) -> Unit, onReview:
                     color = colors.textSecondary,
                     modifier = Modifier.padding(top = 10.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(colors.ink).padding(12.dp),
                 )
+            }
+        }
+
+        if (state.sources.isNotEmpty()) {
+            SurfaceCard(padding = 16.dp) {
+                Text("Seen in ${state.sources.size} messages", style = ImpeesaTheme.type.label, color = colors.textPrimary)
+                Text(
+                    "Impeesa merged these because they describe the same payment.",
+                    style = ImpeesaTheme.type.caption,
+                    color = colors.textSecondary,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+                state.sources.forEach { source ->
+                    Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(source.label, style = ImpeesaTheme.type.caption, color = colors.textTertiary)
+                        source.text?.let {
+                            Text(
+                                it,
+                                style = ImpeesaTheme.type.caption.copy(fontFamily = FontFamily.Monospace),
+                                color = colors.textSecondary,
+                                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(colors.ink).padding(12.dp),
+                            )
+                        }
+                        if (source.merged) {
+                            Text(
+                                "Not the same payment? Split",
+                                style = ImpeesaTheme.type.label,
+                                color = colors.lime,
+                                modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(role = Role.Button) { viewModel.split(source.rawId) }.padding(vertical = 6.dp),
+                            )
+                        }
+                    }
+                }
             }
         }
 

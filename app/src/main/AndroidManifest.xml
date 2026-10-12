@@ -17,6 +17,19 @@
     <!-- Tablets without a SIM can still install the app and use manual mode. -->
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
+    <!-- Only these apps need to be visible, to show which supported payment apps are installed.
+         No QUERY_ALL_PACKAGES (IMPLEMENTATION_PLAN.md §12.2). -->
+    <queries>
+        <package android:name="com.google.android.apps.nbu.paisa.user" />
+        <package android:name="com.phonepe.app" />
+        <package android:name="net.one97.paytm" />
+        <package android:name="in.org.npci.upiapp" />
+        <package android:name="com.dreamplug.androidapp" />
+        <package android:name="in.amazon.mShop.android.shopping" />
+        <package android:name="com.google.android.apps.messaging" />
+        <package android:name="com.samsung.android.messaging" />
+    </queries>
+
     <application
         android:name=".ImpeesaApp"
         android:allowBackup="false"
@@ -48,5 +61,16 @@
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
         </receiver>
+
+        <!-- Payment-app notifications. The user grants access in system settings; only the system can bind. -->
+        <service
+            android:name=".capture.PaymentNotificationListener"
+            android:exported="true"
+            android:label="@string/listener_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

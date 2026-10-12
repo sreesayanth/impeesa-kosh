@@ -9,6 +9,7 @@ import com.impeesa.finance.core.data.db.ImpeesaDatabase
 import com.impeesa.finance.core.data.db.TransactionDao
 import com.impeesa.finance.core.data.db.TransactionEntity
 import com.impeesa.finance.core.data.db.TransactionRow
+import com.impeesa.finance.core.engine.registry.AppRegistry
 import com.impeesa.finance.core.model.AccountType
 import com.impeesa.finance.core.model.AmountInput
 import com.impeesa.finance.core.model.Channel
@@ -40,6 +41,9 @@ data class TransactionDraft(
 )
 
 enum class ActivityKind { ALL, SPENT, RECEIVED, TRANSFERS }
+
+/** One message behind a transaction. [merged] messages can be split back into their own transaction. */
+data class MessageSourceRef(val rawId: Long, val label: String, val merged: Boolean, val text: String?)
 
 data class ActivityFilter(
     val kind: ActivityKind = ActivityKind.ALL,
@@ -266,6 +270,21 @@ class TransactionRepository internal constructor(
             pendingReview = entity.status == com.impeesa.finance.core.model.TxnStatus.PENDING_REVIEW,
         )
     }
+
+    /** Every message that describes this transaction (one, or two when SMS and app notification were merged). */
+    fun observeSources(txnId: Long): Flow<List<MessageSourceRef>> =
+        dao.observeRawForTransaction(txnId).map { rows ->
+            rows.map { raw ->
+                MessageSourceRef(
+                    rawId = raw.id,
+                    label = if (raw.source == "SMS") "SMS from ${raw.sender}" else (apps.find(raw.sender)?.app ?: raw.sender) + " notification",
+                    merged = raw.route == "MERGED",
+                    text = raw.body?.let { body -> listOfNotNull(raw.title, body).joinToString("\n") },
+                )
+            }
+        }
+
+    private val apps by lazy { AppRegistry.load() }
 
     /** Text of the original SMS/notification, while it is still kept (see retention). */
     fun observeOriginalMessage(rawId: Long): Flow<String?> =

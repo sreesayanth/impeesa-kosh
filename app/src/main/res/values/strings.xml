@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">Impeesa Kosh</string>
+    <string name="listener_label">Impeesa payment alerts</string>
     <string name="tab_home">Home</string>
     <string name="tab_insights">Insights</string>
     <string name="tab_activity">Activity</string>
