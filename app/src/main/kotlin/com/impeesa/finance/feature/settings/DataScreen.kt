@@ -185,7 +185,7 @@ fun DataScreen(onBack: () -> Unit) {
             }
             Divider()
             if (weeklyFolder == null) {
-                ActionRow("Weekly backup", "Off · pick a folder once and Impeesa saves a backup every week, keeping the last 4", busy == null) { passFor = PassFor.WEEKLY }
+                ActionRow("Weekly backup", "Off · pick a folder once and Kosh saves a backup every week, keeping the last 4", busy == null) { passFor = PassFor.WEEKLY }
             } else {
                 ActionRow("Weekly backup is on", "Into ${folderName(weeklyFolder!!)} · tap to back up there now", busy == null) {
                     run("Backing up…") {
@@ -206,7 +206,7 @@ fun DataScreen(onBack: () -> Unit) {
             }
         }
         Text(
-            "Backups are encrypted with your passphrase (AES-256). Without it nobody can open them, not even you, so keep it safe. Saving to Google Drive is done by the Drive app; Impeesa itself has no internet access.",
+            "Backups are encrypted with your passphrase (AES-256). Without it nobody can open them, not even you, so keep it safe. Saving to Google Drive is done by the Drive app; Kosh itself has no internet access.",
             style = ImpeesaTheme.type.caption,
             color = colors.textTertiary,
         )
@@ -218,7 +218,7 @@ fun DataScreen(onBack: () -> Unit) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     csvPeriods.forEachIndexed { i, (label, _) -> ImpeesaChip(label = label, selected = csvPeriod == i, onClick = { csvPeriod = i }) }
                 }
-                Pill("Export CSV", enabled = busy == null) { exportCsv.launch("impeesa-transactions-$today.csv") }
+                Pill("Export CSV", enabled = busy == null) { exportCsv.launch("kosh-transactions-$today.csv") }
             }
             Divider()
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -229,7 +229,7 @@ fun DataScreen(onBack: () -> Unit) {
                         ImpeesaChip(label = m.month.getDisplayName(java.time.format.TextStyle.SHORT, Locale.ENGLISH), selected = pdfMonth == m, onClick = { pdfMonth = m })
                     }
                 }
-                Pill("Save report", enabled = busy == null) { exportPdf.launch("impeesa-report-$pdfMonth.pdf") }
+                Pill("Save report", enabled = busy == null) { exportPdf.launch("kosh-report-$pdfMonth.pdf") }
             }
         }
         Text("Exports are not encrypted. Anyone who gets the file can read it, so share it carefully.", style = ImpeesaTheme.type.caption, color = colors.amber)
@@ -363,7 +363,7 @@ private fun PassphraseSheet(purpose: PassFor, onDone: (CharArray, Boolean) -> Un
             if (confirm.isNotEmpty() && confirm != pass) Text("Passphrases don't match", style = ImpeesaTheme.type.caption, color = colors.coral)
             ToggleRow("Include original messages", "Bank SMS texts. Larger file; off keeps backups leaner and more private.", includeMessages) { includeMessages = it }
             Text(
-                if (purpose == PassFor.WEEKLY) "Impeesa keeps this passphrase on the phone, encrypted, so weekly backups can run. You'll still need it to restore."
+                if (purpose == PassFor.WEEKLY) "Kosh keeps this passphrase on the phone, encrypted, so weekly backups can run. You'll still need it to restore."
                 else "There's no way to recover a forgotten passphrase.",
                 style = ImpeesaTheme.type.caption,
                 color = colors.textTertiary,

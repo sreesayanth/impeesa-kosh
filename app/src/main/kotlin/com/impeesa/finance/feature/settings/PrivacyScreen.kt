@@ -40,7 +40,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Image(painterResource(R.drawable.ic_brand_mark), contentDescription = null, modifier = Modifier.size(56.dp))
             Column {
-                Text("Impeesa Kosh", style = ImpeesaTheme.type.title, color = colors.textPrimary)
+                Text("Kosh", style = ImpeesaTheme.type.title, color = colors.textPrimary)
                 Text("Version $version", style = ImpeesaTheme.type.caption, color = colors.textSecondary)
             }
         }
@@ -48,8 +48,8 @@ fun PrivacyScreen(onBack: () -> Unit) {
         SectionLabel("Our promises")
         Card {
             listOf(
-                "Only money messages" to "Impeesa reads SMS from banks and card companies, and notifications from the payment apps you switch on. Personal chats and OTPs are ignored and never saved.",
-                "Everything stays on your phone" to "Messages are read and sorted on this device. Impeesa has no internet permission at all, so it cannot send anything anywhere.",
+                "Only money messages" to "Kosh reads SMS from banks and card companies, and notifications from the payment apps you switch on. Personal chats and OTPs are ignored and never saved.",
+                "Everything stays on your phone" to "Messages are read and sorted on this device. Kosh has no internet permission at all, so it cannot send anything anywhere.",
                 "Encrypted" to "Your data is stored in an encrypted database whose key is protected by your phone's secure hardware.",
                 "Nothing shared" to "No accounts, no ads, no analytics, no tracking. Nobody else sees your data, including us.",
                 "You're in control" to "Back up with your own passphrase, export whenever you like, and delete everything in one tap. Uninstalling removes it all too.",
@@ -66,7 +66,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
         Card {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "The app lock keeps people out of the app; it doesn't stop Impeesa logging new payments in the background, so nothing is missed while it's locked.",
+                    "The app lock keeps people out of the app; it doesn't stop Kosh logging new payments in the background, so nothing is missed while it's locked.",
                     style = ImpeesaTheme.type.caption,
                     color = colors.textSecondary,
                 )
@@ -76,7 +76,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
                     color = colors.textSecondary,
                 )
                 Text(
-                    "Android's automatic cloud backup is turned off for Impeesa, so your data never leaves the phone unless you make a backup yourself.",
+                    "Android's automatic cloud backup is turned off for Kosh, so your data never leaves the phone unless you make a backup yourself.",
                     style = ImpeesaTheme.type.caption,
                     color = colors.textSecondary,
                 )

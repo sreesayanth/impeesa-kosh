@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Backups, restore and exports (IMPLEMENTATION_PLAN.md §9.8). Files go through the Storage Access Framework,
- * so the user can pick Google Drive, a USB stick or the phone; any upload is done by that app, and Impeesa
+ * so the user can pick Google Drive, a USB stick or the phone; any upload is done by that app, and Kosh
  * still needs no internet permission.
  */
 class BackupService(private val context: Context, private val container: AppContainer) {
@@ -77,7 +77,7 @@ class BackupService(private val context: Context, private val container: AppCont
 
     // ------------------------------------------------------------ manual backup and restore
 
-    fun suggestedName(): String = "impeesa-backup-${LocalDate.now(container.clock)}.impk"
+    fun suggestedName(): String = "kosh-backup-${LocalDate.now(container.clock)}.impk"
 
     suspend fun createTo(uri: Uri, passphrase: CharArray, includeMessages: Boolean) = withContext(Dispatchers.IO) {
         val bytes = container.backupRepository.create(passphrase, includeMessages, settingsSnapshot())
@@ -137,7 +137,8 @@ class BackupService(private val context: Context, private val container: AppCont
         resolver.query(children, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)?.use { c ->
             while (c.moveToNext()) {
                 val name = c.getString(1)
-                if (name.startsWith("impeesa-backup-") && name.endsWith(".impk")) backups += c.getString(0) to name
+                // Older backups were named impeesa-backup-…; both count towards the 4 kept.
+                if ((name.startsWith("kosh-backup-") || name.startsWith("impeesa-backup-")) && name.endsWith(".impk")) backups += c.getString(0) to name.substringAfter("-backup-")
             }
         }
         backups.sortedByDescending { it.second }.drop(KEEP).forEach { (id, _) ->
@@ -171,7 +172,7 @@ class BackupService(private val context: Context, private val container: AppCont
         val line = Paint().apply { color = 0xFFDDDDDD.toInt(); strokeWidth = 1f }
 
         var y = 64f
-        canvas.drawText("Impeesa Kosh · $title", 48f, y, heading)
+        canvas.drawText("Kosh · $title", 48f, y, heading)
         y += 20f
         canvas.drawText("${period.start.format(DAY)} – ${period.end.format(DAY)} · made on your phone", 48f, y, sub)
         y += 36f
@@ -209,7 +210,7 @@ class BackupService(private val context: Context, private val container: AppCont
             y += 18f
         }
 
-        canvas.drawText("Generated on this phone by Impeesa Kosh. Impeesa has no internet access; this file was not uploaded.", 48f, 810f, sub)
+        canvas.drawText("Generated on this phone by Kosh. Kosh has no internet access; this file was not uploaded.", 48f, 810f, sub)
         doc.finishPage(page)
         resolver.openOutputStream(uri, "wt")!!.use { doc.writeTo(it) }
         doc.close()

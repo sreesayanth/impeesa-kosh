@@ -1,21 +1,21 @@
 <div align="center">
 
-<img src="docs/screenshots/banner.png" alt="Impeesa Kosh: know where every rupee goes" width="100%">
+<img src="docs/screenshots/banner.png" alt="Kosh: know where every rupee goes" width="100%">
 
-<img src="docs/icon.png" width="96" alt="Impeesa Kosh app icon">
+<img src="docs/icon.png" width="96" alt="Kosh app icon">
 
-# Impeesa Kosh
+# Kosh
 
 **A private personal-finance app for Android that tracks your money from bank SMS and UPI alerts, automatically and entirely on your phone.**
 
-[![Download APK](https://img.shields.io/badge/Download-APK%20v0.9.0-C5F26B?style=for-the-badge&logo=android&logoColor=0B0D10&labelColor=0B0D10)](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.9.0.apk)
+[![Download APK](https://img.shields.io/badge/Download-APK%20v0.9.1-C5F26B?style=for-the-badge&logo=android&logoColor=0B0D10&labelColor=0B0D10)](https://github.com/sreesayanth/kosh/raw/main/release/kosh-0.9.1.apk)
 
-![Version](https://img.shields.io/badge/version-0.9.0-C5F26B?labelColor=15181D)
+![Version](https://img.shields.io/badge/version-0.9.1-C5F26B?labelColor=15181D)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white&labelColor=15181D)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white&labelColor=15181D)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=jetpackcompose&logoColor=white&labelColor=15181D)
 ![No internet](https://img.shields.io/badge/internet%20permission-none-FF8562?labelColor=15181D)
-[![CI](https://github.com/sreesayanth/impeesa-kosh/actions/workflows/ci.yml/badge.svg)](https://github.com/sreesayanth/impeesa-kosh/actions/workflows/ci.yml)
+[![CI](https://github.com/sreesayanth/kosh/actions/workflows/ci.yml/badge.svg)](https://github.com/sreesayanth/kosh/actions/workflows/ci.yml)
 
 [Download](#-download) · [Screenshots](#-screenshots) · [Features](#-features) · [Privacy](#-privacy-by-design) · [How it works](#-how-it-works) · [Build](#-build-from-source) · [Roadmap](#-roadmap)
 
@@ -23,9 +23,9 @@
 
 ---
 
-## Why Impeesa Kosh
+## Why Kosh
 
-Every payment you make in India already sends you a text: the bank SMS, the UPI alert, the card notification. Impeesa Kosh reads those messages **on the device**, turns them into clean transactions (merchant, category, account, method), and builds budgets, insights and habits from them. You don't need to type anything, link a bank account or give a server your data.
+Every payment you make in India already sends you a text: the bank SMS, the UPI alert, the card notification. Kosh reads those messages **on the device**, turns them into clean transactions (merchant, category, account, method), and builds budgets, insights and habits from them. You don't need to type anything, link a bank account or give a server your data.
 
 The app has **no internet permission at all**. The build fails if any library tries to add one.
 
@@ -35,20 +35,20 @@ The app has **no internet permission at all**. The build fails if any library tr
 <tr>
 <td width="60%">
 
-### Impeesa Kosh 0.9.0
+### Kosh 0.9.1
 
 | | |
 |---|---|
-| **File** | [`impeesa-kosh-0.9.0.apk`](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.9.0.apk) |
+| **File** | [`kosh-0.9.1.apk`](https://github.com/sreesayanth/kosh/raw/main/release/kosh-0.9.1.apk) |
 | **Size** | 12.2 MB |
 | **Requires** | Android 8.0 (API 26) or newer, ARM phone |
 | **Package** | `com.impeesa.finance` |
-| **SHA-256** | `9522C978DA8635E70C2514C20FBC7BFD13BFEFD1B2476F839A3AE298C82EC83B` |
+| **SHA-256** | `A6EFCE345658C15F93B78D1A2F0922C3A0A9409171485A512A2BDCE9B9AAE90A` |
 
 </td>
 <td width="40%" align="center">
 
-<a href="https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.9.0.apk"><img src="https://img.shields.io/badge/⬇%20Download%20APK-0.9.0-C5F26B?style=for-the-badge&labelColor=0B0D10" alt="Download APK"></a>
+<a href="https://github.com/sreesayanth/kosh/raw/main/release/kosh-0.9.1.apk"><img src="https://img.shields.io/badge/⬇%20Download%20APK-0.9.1-C5F26B?style=for-the-badge&labelColor=0B0D10" alt="Download APK"></a>
 
 <sub>Or browse the <a href="release/">release folder</a></sub>
 
@@ -60,10 +60,10 @@ The app has **no internet permission at all**. The build fails if any library tr
 
 1. Open the download link on your Android phone and save the APK.
 2. Tap the file. When asked, allow **Install unknown apps** for your browser or file manager.
-3. Open Impeesa Kosh and follow onboarding. It explains exactly what is read before it asks for SMS access.
+3. Open Kosh and follow onboarding. It explains exactly what is read before it asks for SMS access.
 
 > [!IMPORTANT]
-> **Android 13+:** apps installed outside an app store can be blocked from SMS access. If the permission is greyed out, open **Settings → Apps → Impeesa Kosh → ⋮ → Allow restricted settings** and try again.
+> **Android 13+:** apps installed outside an app store can be blocked from SMS access. If the permission is greyed out, open **Settings → Apps → Kosh → ⋮ → Allow restricted settings** and try again.
 
 > [!NOTE]
 > This build is a preview signed with a development key. A later build signed with the release key will need you to uninstall this one first, and uninstalling removes the app's local data. Backup and export are on the roadmap.
@@ -104,7 +104,7 @@ The app has **no internet permission at all**. The build fails if any library tr
 - Uncertain items go to a **Review queue** instead of being logged silently.
 
 **Categories that learn**
-- Correct a merchant twice the same way and Impeesa sorts it that way from then on. Sort it two different ways and it asks you each time.
+- Correct a merchant twice the same way and Kosh sorts it that way from then on. Sort it two different ways and it asks you each time.
 - One switch turns a correction into a rule ("Always sort Swiggy as Groceries"), and one tap applies it to earlier transactions. Rows you set by hand are never changed.
 - Rules by merchant, UPI ID, message text, account or amount range can set a category, mark a transfer, leave a payment out of spending, or ask every time. Each rule shows how often it has matched.
 - Every transaction says why it has its category: your choice, your rule, learned, a known merchant, or a keyword in the message.
@@ -112,14 +112,14 @@ The app has **no internet permission at all**. The build fails if any library tr
 
 **Budgets, insights and habits**
 - A monthly budget and per-category budgets, with a pace marker, a warn-at threshold and optional carry-over. Suggestions come from your last three months.
-- **Safe to spend per day** on Home: what's left, minus bills Impeesa expects before the period ends, divided by the days left.
-- Your budget month can start on your salary day; Impeesa spots the salary and suggests it.
+- **Safe to spend per day** on Home: what's left, minus bills Kosh expects before the period ends, divided by the days left.
+- Your budget month can start on your salary day; Kosh spots the salary and suggests it.
 - **Insights**: week, month or year donut by category, a like-for-like comparison ("↓ 12% vs last"), six periods of cash flow and your savings rate.
 - **Habits**: a daily-spend calendar, weekday and weekend patterns, late-night food orders, top merchants, and subscriptions and bills found from repeating payments, with next dates and price changes.
 - Short insights such as "Friday was 3× your usual day" use fixed templates with your numbers filled in. Nothing is generated, and you can dismiss any of them.
 
 **Accounts, cards and alerts**
-- Balances follow your bank. An "Avl Bal" in any SMS (or a card's available limit) becomes the balance, and Impeesa keeps counting from there. When the two disagree, the bank wins and you're told about gaps over ₹500.
+- Balances follow your bank. An "Avl Bal" in any SMS (or a card's available limit) becomes the balance, and Kosh keeps counting from there. When the two disagree, the bank wins and you're told about gaps over ₹500.
 - Credit cards show what's owed, the available limit and utilisation with a 30 % marker. Bills are read from statement SMS (total, minimum, due date) or added by hand, and they're marked paid when the payment SMS arrives.
 - Alerts, on separate notification channels: card bills 3 days before and on the due date (until paid), budget warnings, large payments, unusual days, subscription renewals and price changes, new accounts found, low balance (optional), balance updates, a weekly summary and auto-capture health. Every alert is shown once; the in-app list keeps 60 days.
 - "Set balance" and "Count cash" for when you know better than the SMS.
@@ -147,7 +147,7 @@ The app has **no internet permission at all**. The build fails if any library tr
 | **No accounts, no bank logins** | Nothing to sign up for and nothing to link. Your profile (name and colour) is stored only on the phone. |
 | **Prominent disclosure** | Onboarding shows what is read and why, before any permission prompt. |
 | **App lock** | PIN (stored as a salted PBKDF2 hash) plus fingerprint or face. It locks after 0, 1 or 5 minutes in the background, also covers notification taps, and backs off after wrong PINs. Forgot your PIN? Confirm with the phone's screen lock. |
-| **Your backups, your key** | Backups are AES-256-GCM encrypted with your passphrase (PBKDF2, 600,000 rounds) and saved where you choose through the system file picker, Google Drive included, while Impeesa itself stays offline. Weekly backups keep the last 4. Android's cloud backup is off. |
+| **Your backups, your key** | Backups are AES-256-GCM encrypted with your passphrase (PBKDF2, 600,000 rounds) and saved where you choose through the system file picker, Google Drive included, while Kosh itself stays offline. Weekly backups keep the last 4. Android's cloud backup is off. |
 | **Retention and delete-all** | Message texts are kept 30/90/180 days, forever or not at all. *Delete all data* (type DELETE, then confirm with your screen lock) removes the database, its key and every setting. |
 
 ## ⚙️ How it works
@@ -190,8 +190,8 @@ Native Android in **Kotlin + Jetpack Compose**, split into modules so the detect
 Requirements: **JDK 17** and the **Android SDK** (platform 35, build-tools 35).
 
 ```bash
-git clone https://github.com/sreesayanth/impeesa-kosh.git
-cd impeesa-kosh
+git clone https://github.com/sreesayanth/kosh.git
+cd kosh
 
 ./gradlew :core:model:test :core:engine:test testDebugUnitTest   # unit tests
 ./gradlew assembleDebug                                           # build the APK

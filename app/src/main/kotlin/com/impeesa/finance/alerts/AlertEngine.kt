@@ -60,7 +60,7 @@ class AlertEngine(private val context: Context, private val container: AppContai
             if (statement != null && !statement.dueDate.isBefore(today)) {
                 CardDueInput(card.id, card.name, statement.dueDate, statement.remaining ?: statement.totalDue, statement.minDue, statement.isPaid)
             } else {
-                // No bill message yet: use the due day the user set and what Impeesa thinks is owed.
+                // No bill message yet: use the due day the user set and what Kosh thinks is owed.
                 val dueDay = ledger.observeSettings(card.id).first()?.dueDay ?: return@mapNotNull null
                 CardDueInput(card.id, card.name, CardCycle.nextDueDate(today, dueDay), card.owed.takeIf { it.paise > 0 }, null, paid = card.owed.paise <= 0)
             }

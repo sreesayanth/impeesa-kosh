@@ -15,8 +15,8 @@ import javax.crypto.spec.SecretKeySpec
 
 /** Why a backup file could not be opened. */
 sealed class BackupException(message: String) : Exception(message) {
-    class NotABackup : BackupException("This isn't an Impeesa backup file")
-    class UnsupportedVersion(val version: Int) : BackupException("This backup was made by a newer version of Impeesa")
+    class NotABackup : BackupException("This isn't an Kosh backup file")
+    class UnsupportedVersion(val version: Int) : BackupException("This backup was made by a newer version of Kosh")
     class WrongPassphrase : BackupException("Wrong passphrase, or the file is damaged")
 }
 

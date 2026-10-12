@@ -49,7 +49,7 @@ fun RecoveryScreen(detail: String) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Image(painterResource(R.drawable.ic_brand_mark), contentDescription = null, modifier = Modifier.size(64.dp))
-            Text("Impeesa can't open your data", style = ImpeesaTheme.type.headline, color = colors.textPrimary, textAlign = TextAlign.Center, modifier = Modifier.semantics { heading() })
+            Text("Kosh can't open your data", style = ImpeesaTheme.type.headline, color = colors.textPrimary, textAlign = TextAlign.Center, modifier = Modifier.semantics { heading() })
             Text(
                 "Your data is encrypted with a key kept in your phone's secure storage, and the phone no longer has that key. This can happen after some system updates or security resets. Nothing has been deleted.",
                 style = ImpeesaTheme.type.body,
@@ -70,7 +70,7 @@ fun RecoveryScreen(detail: String) {
         AlertDialog(
             onDismissRequest = { confirm = false },
             title = { Text("Start fresh?") },
-            text = { Text("The unreadable data is removed so Impeesa can start again. Restore a backup afterwards if you have one.") },
+            text = { Text("The unreadable data is removed so Kosh can start again. Restore a backup afterwards if you have one.") },
             confirmButton = { TextButton(onClick = { confirm = false; container.ioScope.launch { container.resetDatabase() } }) { Text("Start fresh", color = colors.coral) } },
             dismissButton = { TextButton(onClick = { confirm = false }) { Text("Cancel") } },
             containerColor = colors.card,

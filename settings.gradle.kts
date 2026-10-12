@@ -20,7 +20,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "impeesa-kosh"
+rootProject.name = "kosh"
 
 include(
     ":app",

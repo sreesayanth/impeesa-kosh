@@ -168,7 +168,7 @@ fun DetailScreen(id: Long, onBack: () -> Unit, onEdit: (Long) -> Unit, onReview:
             SurfaceCard(padding = 16.dp) {
                 Text("Seen in ${state.sources.size} messages", style = ImpeesaTheme.type.label, color = colors.textPrimary)
                 Text(
-                    "Impeesa merged these because they describe the same payment.",
+                    "Kosh merged these because they describe the same payment.",
                     style = ImpeesaTheme.type.caption,
                     color = colors.textSecondary,
                     modifier = Modifier.padding(top = 4.dp),

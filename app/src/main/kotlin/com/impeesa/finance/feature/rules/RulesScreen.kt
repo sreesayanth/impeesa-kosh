@@ -99,7 +99,7 @@ class RulesViewModel(
     fun forget(merchant: LearnedMerchant) {
         viewModelScope.launch {
             categorization.forget(merchant.merchantKey)
-            undo.post(UndoEvent("Forgot what Impeesa learned about ${merchant.label}"))
+            undo.post(UndoEvent("Forgot what Kosh learned about ${merchant.label}"))
         }
     }
 }
@@ -140,7 +140,7 @@ fun RulesScreen(
                 item(key = "empty") {
                     EmptyState(
                         title = "No rules yet",
-                        body = "Change a transaction's category and switch on “Always sort”, or make a rule here: when the merchant, UPI ID, message, account or amount matches, Impeesa sorts it for you.",
+                        body = "Change a transaction's category and switch on “Always sort”, or make a rule here: when the merchant, UPI ID, message, account or amount matches, Kosh sorts it for you.",
                         actionLabel = "New rule",
                         onAction = onNewRule,
                     )
@@ -157,7 +157,7 @@ fun RulesScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         SectionLabel("Learned from your corrections")
                         Text(
-                            "After you correct a merchant twice the same way, new transactions follow. Sorted it different ways? Impeesa asks.",
+                            "After you correct a merchant twice the same way, new transactions follow. Sorted it different ways? Kosh asks.",
                             style = ImpeesaTheme.type.caption,
                             color = colors.textTertiary,
                         )

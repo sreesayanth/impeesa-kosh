@@ -16,7 +16,7 @@ class HoldoutReportTest {
         val engine = DetectionEngine.withBundledData()
         val entries = Corpus.load("/corpus-holdout")
         val report = CorpusReport.build(entries.size, entries.map { it to engine.analyze(it.envelope()) })
-        val text = report.render().replace("Impeesa engine corpus report", "Hold-out report (not tuned on)")
+        val text = report.render().replace("Kosh engine corpus report", "Hold-out report (not tuned on)")
         println(text)
         File("build/reports").mkdirs()
         File("build/reports/holdout.txt").writeText(text)

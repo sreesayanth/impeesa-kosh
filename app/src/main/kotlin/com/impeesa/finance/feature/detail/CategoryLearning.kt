@@ -62,7 +62,7 @@ internal fun LearnCard(
                 Text("Always sort ${prompt.merchant} as ${prompt.categoryName}", style = ImpeesaTheme.type.body, color = colors.textPrimary)
                 Text(
                     if (prompt.alwaysSort) "Saved as a rule. Edit it in Settings → Categories & rules."
-                    else "Otherwise Impeesa learns after you correct it twice.",
+                    else "Otherwise Kosh learns after you correct it twice.",
                     style = ImpeesaTheme.type.caption,
                     color = colors.textTertiary,
                 )

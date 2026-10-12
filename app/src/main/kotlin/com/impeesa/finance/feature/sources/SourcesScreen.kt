@@ -49,7 +49,7 @@ import com.impeesa.finance.core.ui.component.SurfaceCard
 import com.impeesa.finance.core.ui.theme.ImpeesaTheme
 import java.time.LocalDate
 
-/** "Auto-capture": where Impeesa looks for transactions and how to keep it working (design board "Sources"). */
+/** "Auto-capture": where Kosh looks for transactions and how to keep it working (design board "Sources"). */
 @Composable
 fun SourcesScreen(onBack: () -> Unit, onEnableSms: () -> Unit, onRescan: () -> Unit) {
     val context = LocalContext.current
@@ -88,7 +88,7 @@ fun SourcesScreen(onBack: () -> Unit, onEnableSms: () -> Unit, onRescan: () -> U
         }
         if (!notificationsAllowed) {
             Text(
-                "Turn on notification access to also capture GPay, PhonePe and Paytm payments. Find “Impeesa payment alerts” in the list. " +
+                "Turn on notification access to also capture GPay, PhonePe and Paytm payments. Find “Kosh payment alerts” in the list. " +
                     "On Android 13+, sideloaded apps may first need “Allow restricted settings” from the app's info page.",
                 style = ImpeesaTheme.type.caption,
                 color = colors.textSecondary,
@@ -105,7 +105,7 @@ fun SourcesScreen(onBack: () -> Unit, onEnableSms: () -> Unit, onRescan: () -> U
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("Your phone may pause Impeesa in the background", style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
+                Text("Your phone may pause Kosh in the background", style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
                 Text(
                     "$help Anything missed is picked up next time you open the app.",
                     style = ImpeesaTheme.type.caption,
@@ -224,11 +224,11 @@ private val manufacturer = Build.MANUFACTURER.lowercase()
 
 /** Advice for phones known to stop background apps. Null for phones that behave. */
 private fun backgroundHelp(): String? = when {
-    manufacturer in setOf("xiaomi", "redmi", "poco") -> "Turn on Autostart for Impeesa and set Battery saver to “No restrictions”."
-    manufacturer in setOf("oppo", "realme", "oneplus") -> "Allow auto-launch and background activity for Impeesa."
-    manufacturer == "vivo" -> "Allow background start-up and high background power use for Impeesa."
-    manufacturer in setOf("huawei", "honor") -> "In App launch, set Impeesa to “Manage manually” with everything on."
-    manufacturer == "samsung" -> "Set Impeesa's battery use to “Unrestricted” so it isn't put to sleep."
+    manufacturer in setOf("xiaomi", "redmi", "poco") -> "Turn on Autostart for Kosh and set Battery saver to “No restrictions”."
+    manufacturer in setOf("oppo", "realme", "oneplus") -> "Allow auto-launch and background activity for Kosh."
+    manufacturer == "vivo" -> "Allow background start-up and high background power use for Kosh."
+    manufacturer in setOf("huawei", "honor") -> "In App launch, set Kosh to “Manage manually” with everything on."
+    manufacturer == "samsung" -> "Set Kosh's battery use to “Unrestricted” so it isn't put to sleep."
     else -> null
 }
 

@@ -253,7 +253,7 @@ private fun AllCaughtUp(onBack: () -> Unit) {
             Text("✓", style = ImpeesaTheme.type.display, color = colors.onLime)
         }
         Text("All caught up", style = ImpeesaTheme.type.headline, color = colors.textPrimary)
-        Text("Nothing is waiting for you. New ones appear here when Impeesa isn't sure.", style = ImpeesaTheme.type.body, color = colors.textSecondary)
+        Text("Nothing is waiting for you. New ones appear here when Kosh isn't sure.", style = ImpeesaTheme.type.body, color = colors.textSecondary)
         PrimaryButton(text = "Back", onClick = onBack)
     }
 }

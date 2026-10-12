@@ -217,7 +217,7 @@ private fun OverallCard(o: BudgetOverview, onNew: () -> Unit, onEdit: (Long) -> 
     if (overall == null) {
         EmptyState(
             title = "No monthly budget yet",
-            body = "Set one amount for the month and Impeesa shows what's safe to spend each day, keeping money aside for bills it has spotted.",
+            body = "Set one amount for the month and Kosh shows what's safe to spend each day, keeping money aside for bills it has spotted.",
             actionLabel = "Set a budget",
             onAction = onNew,
         )

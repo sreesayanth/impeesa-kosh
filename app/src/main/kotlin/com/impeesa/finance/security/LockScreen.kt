@@ -76,7 +76,7 @@ fun LockScreen() {
     BackHandler { activity.moveTaskToBack(true) }
 
     fun promptBiometric() {
-        SystemAuth.authenticate(activity, "Unlock Impeesa", "Use your fingerprint or face", allowDeviceCredential = false, onSuccess = lock::unlock)
+        SystemAuth.authenticate(activity, "Unlock Kosh", "Use your fingerprint or face", allowDeviceCredential = false, onSuccess = lock::unlock)
     }
     LaunchedEffect(Unit) { if (canUseBiometric && lockedUntil <= System.currentTimeMillis()) promptBiometric() }
     LaunchedEffect(lockedUntil) {
@@ -117,7 +117,7 @@ fun LockScreen() {
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Image(painterResource(R.drawable.ic_brand_mark), contentDescription = null, modifier = Modifier.size(64.dp))
-            Text(if (profile.hasName) "Welcome back, ${profile.firstName}" else "Impeesa is locked", style = ImpeesaTheme.type.title, color = colors.textPrimary)
+            Text(if (profile.hasName) "Welcome back, ${profile.firstName}" else "Kosh is locked", style = ImpeesaTheme.type.title, color = colors.textPrimary)
             val waiting = lockedUntil > now
             Text(
                 when {
@@ -158,7 +158,7 @@ fun LockScreen() {
                 modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(role = Role.Button) {
                     if (SystemAuth.deviceCredentialAvailable(activity)) {
                         SystemAuth.authenticate(
-                            activity, "Reset your Impeesa PIN", "Confirm it's you with your phone's screen lock",
+                            activity, "Reset your Kosh PIN", "Confirm it's you with your phone's screen lock",
                             allowDeviceCredential = true,
                             onSuccess = { resetting = true },
                         )

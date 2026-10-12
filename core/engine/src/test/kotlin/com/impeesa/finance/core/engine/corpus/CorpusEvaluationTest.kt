@@ -71,7 +71,7 @@ class CorpusReport private constructor(
     fun failures(kind: String) = problems.filter { it.first == kind }.map { it.second }.take(25)
 
     fun render(): String = buildString {
-        appendLine("=== Impeesa engine corpus report ===")
+        appendLine("=== Kosh engine corpus report ===")
         appendLine("Messages: $total ($seeds hand-written seeds + ${total - seeds} value variants)")
         appendLine("Auto-log precision: ${pct(autoLogPrecision)}   Recall (auto + review): ${pct(recall)}   Auto-log rate: ${pct(autoLogRate)}")
         appendLine("Negatives captured: $negativesCaptured   Wrong amounts: $wrongAmounts   Review misses: $reviewMisses")

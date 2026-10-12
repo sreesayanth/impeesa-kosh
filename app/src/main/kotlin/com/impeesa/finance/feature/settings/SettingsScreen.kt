@@ -115,11 +115,11 @@ fun SettingsScreen(
             HorizontalDivider(color = colors.raised)
             SettingsRow(UiR.drawable.ic_accounts, "Backup & data", "Encrypted backup, restore, export, delete all", onData)
             HorizontalDivider(color = colors.raised)
-            SettingsRow(UiR.drawable.ic_insights, "Privacy & about", "What Impeesa reads and keeps", onPrivacy)
+            SettingsRow(UiR.drawable.ic_insights, "Privacy & about", "What Kosh reads and keeps", onPrivacy)
         }
 
         Text(
-            "Impeesa Kosh $version · No internet access · Your data stays on this phone",
+            "Kosh $version · No internet access · Your data stays on this phone",
             style = ImpeesaTheme.type.caption,
             color = colors.textTertiary,
             textAlign = TextAlign.Center,

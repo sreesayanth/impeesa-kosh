@@ -30,7 +30,7 @@ class AlertNotifier(private val context: Context, private val capture: CaptureNo
         AlertKind.SUBSCRIPTION -> ChannelSpec("subscriptions", "Subscriptions", "Renewals and price changes", NotificationManager.IMPORTANCE_DEFAULT)
         AlertKind.NEW_ACCOUNT, AlertKind.LOW_BALANCE, AlertKind.BALANCE_SYNC -> ChannelSpec("accounts", "Accounts", "New accounts found, low and updated balances", NotificationManager.IMPORTANCE_DEFAULT)
         AlertKind.WEEKLY_SUMMARY -> ChannelSpec("summary", "Weekly summary", "How last week went, on Monday mornings", NotificationManager.IMPORTANCE_LOW)
-        AlertKind.CAPTURE_HEALTH -> ChannelSpec("health", "Auto-capture health", "When your phone stops Impeesa reading payment alerts", NotificationManager.IMPORTANCE_DEFAULT)
+        AlertKind.CAPTURE_HEALTH -> ChannelSpec("health", "Auto-capture health", "When your phone stops Kosh reading payment alerts", NotificationManager.IMPORTANCE_DEFAULT)
     }
 
     fun createChannels() {

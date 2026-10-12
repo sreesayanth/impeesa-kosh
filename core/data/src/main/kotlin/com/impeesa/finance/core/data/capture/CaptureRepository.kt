@@ -80,7 +80,7 @@ data class ImportProgress(
 
 data class CaptureStats(val logged: Int, val review: Int, val skipped: Map<String, Int>)
 
-/** A payment app and whether Impeesa reads its notifications. */
+/** A payment app and whether Kosh reads its notifications. */
 data class WatchedApp(val app: PaymentApp, val enabled: Boolean)
 
 /**
@@ -106,7 +106,7 @@ class CaptureRepository internal constructor(
 
     // ---------------------------------------------------------------- settings
 
-    /** Payment apps Impeesa can read, with the user's on/off choice. Messaging apps (RCS) are off by default. */
+    /** Payment apps Kosh can read, with the user's on/off choice. Messaging apps (RCS) are off by default. */
     fun watchedApps(): List<WatchedApp> = apps.all.map { WatchedApp(it, isEnabled(it)) }
 
     fun isWatched(packageName: String): Boolean = apps.find(packageName)?.let(::isEnabled) ?: false
@@ -586,7 +586,7 @@ class CaptureRepository internal constructor(
 
     /**
      * Keeps what the bank says about an account: "Avl Bal" and a card's available limit become snapshots
-     * (the snapshot wins over Impeesa's own sum), and statement SMS become bills.
+     * (the snapshot wins over Kosh's own sum), and statement SMS become bills.
      */
     private suspend fun recordLedger(accountId: Long, analysis: Analysis, envelope: MessageEnvelope, rawId: Long, context: EngineContext) {
         val ledger = db.ledgerDao()

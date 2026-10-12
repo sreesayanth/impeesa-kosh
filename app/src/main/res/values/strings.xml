@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">Impeesa Kosh</string>
-    <string name="listener_label">Impeesa payment alerts</string>
+    <string name="app_name">Kosh</string>
+    <string name="listener_label">Kosh payment alerts</string>
     <string name="tab_home">Home</string>
     <string name="tab_insights">Insights</string>
     <string name="tab_activity">Activity</string>
@@ -13,7 +13,7 @@
     <string name="home_income">Income</string>
     <string name="home_recent">Recent</string>
     <string name="home_empty_title">Your month starts here</string>
-    <string name="home_empty_body">Add your first spend and Impeesa will begin drawing your charts.</string>
+    <string name="home_empty_body">Add your first spend and Kosh will begin drawing your charts.</string>
     <string name="shortcut_add">Add spend</string>
     <string name="shortcut_add_long">Add a cash or manual spend</string>
     <string name="shortcut_review">Review</string>

@@ -112,7 +112,7 @@ class BackupRepository internal constructor(
     // ------------------------------------------------------------ dump
 
     private fun dump(includeMessages: Boolean, settings: Map<String, String>): JsonObject = buildJsonObject {
-        put("app", "Impeesa Kosh")
+        put("app", "Kosh")
         put("schemaVersion", currentSchema())
         put("exportedAt", clock.millis())
         put("includesMessages", includeMessages)

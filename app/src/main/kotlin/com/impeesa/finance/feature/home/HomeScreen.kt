@@ -97,7 +97,7 @@ fun HomeScreen(
             item(key = "manual") {
                 Banner(
                     title = "Automatic tracking is off",
-                    body = "Allow SMS access and Impeesa will log bank spends for you.",
+                    body = "Allow SMS access and Kosh will log bank spends for you.",
                     action = "Turn on",
                     tint = colors.coral,
                     onClick = onEnableSms,
@@ -108,7 +108,7 @@ fun HomeScreen(
             item(key = "paused") {
                 Banner(
                     title = "Payment-app alerts are paused",
-                    body = "Your phone stopped Impeesa from reading GPay/PhonePe notifications. Bank SMS still work.",
+                    body = "Your phone stopped Kosh from reading GPay/PhonePe notifications. Bank SMS still work.",
                     action = "Fix",
                     tint = colors.amber,
                     onClick = onAutoCapture,

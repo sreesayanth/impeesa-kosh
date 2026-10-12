@@ -26,7 +26,7 @@ class CaptureNotifier(private val context: Context, private val review: () -> Re
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
             NotificationChannel(CHANNEL_LOGGED, "Logged transactions", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "A quiet note each time Impeesa logs a transaction for you"
+                description = "A quiet note each time Kosh logs a transaction for you"
             },
         )
         manager.createNotificationChannel(
@@ -80,7 +80,7 @@ class CaptureNotifier(private val context: Context, private val review: () -> Re
         val notification = NotificationCompat.Builder(context, CHANNEL_REVIEW)
             .setSmallIcon(R.drawable.ic_stat_impeesa)
             .setContentTitle(if (count == 1) "1 transaction to review" else "$count transactions to review")
-            .setContentText("Impeesa wasn't sure about these. Confirm them in a tap.")
+            .setContentText("Kosh wasn't sure about these. Confirm them in a tap.")
             .setContentIntent(openIntent("review", REVIEW_ID))
             .setOnlyAlertOnce(true)
             .setAutoCancel(true)

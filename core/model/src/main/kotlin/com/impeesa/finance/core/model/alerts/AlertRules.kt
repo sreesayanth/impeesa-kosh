@@ -19,9 +19,9 @@ enum class AlertKind(val title: String, private val template: String, val defaul
     SUBSCRIPTION("Subscriptions", "3 days before a renewal, and when a price changes"),
     NEW_ACCOUNT("New account found", "An account seen twice in your messages that you haven't added"),
     LOW_BALANCE("Low balance", "When an account drops below the amount you set", defaultOn = false),
-    BALANCE_SYNC("Balance updated", "When your bank's balance differs from Impeesa's by more than {sync}"),
+    BALANCE_SYNC("Balance updated", "When your bank's balance differs from Kosh's by more than {sync}"),
     WEEKLY_SUMMARY("Weekly summary", "Monday morning: how last week went"),
-    CAPTURE_HEALTH("Auto-capture health", "When your phone stops Impeesa reading messages"),
+    CAPTURE_HEALTH("Auto-capture health", "When your phone stops Kosh reading messages"),
     ;
 
     /** Shown on Alert settings, with amounts in the user's currency. */
@@ -90,7 +90,7 @@ object AlertRules {
                 AlertCandidate(
                     AlertKind.REVIEW, "REVIEW:$today",
                     if (inputs.reviewCount == 1) "1 transaction to review" else "${inputs.reviewCount} transactions to review",
-                    "Impeesa wasn't sure about these. Confirm them in a tap.", "review",
+                    "Kosh wasn't sure about these. Confirm them in a tap.", "review",
                 ),
             )
         }
@@ -132,7 +132,7 @@ object AlertRules {
             add(
                 AlertCandidate(
                     AlertKind.BALANCE_SYNC, "SYNC:${s.snapshotId}", "Balance updated from your bank",
-                    "${s.accountName} was ${MoneyFormat.format(s.difference.abs())} ${if (s.difference.isNegative) "lower" else "higher"} than Impeesa had. Some payments may not have been captured.",
+                    "${s.accountName} was ${MoneyFormat.format(s.difference.abs())} ${if (s.difference.isNegative) "lower" else "higher"} than Kosh had. Some payments may not have been captured.",
                     "account:${s.accountId}",
                 ),
             )
@@ -151,7 +151,7 @@ object AlertRules {
         }
         if (!inputs.captureHealthy) {
             val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-            add(AlertCandidate(AlertKind.CAPTURE_HEALTH, "HEALTH:$weekStart", "Auto-capture is paused", "Your phone stopped Impeesa reading payment alerts. Tap to fix it.", "sources"))
+            add(AlertCandidate(AlertKind.CAPTURE_HEALTH, "HEALTH:$weekStart", "Auto-capture is paused", "Your phone stopped Kosh reading payment alerts. Tap to fix it.", "sources"))
         }
     }.filter { it.kind in enabled }
 

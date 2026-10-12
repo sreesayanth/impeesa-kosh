@@ -75,7 +75,7 @@ fun SecurityScreen(onBack: () -> Unit) {
         Card {
             ToggleRow(
                 title = "Lock with a PIN",
-                subtitle = if (enabled) "Asked when you open Impeesa, and after it's been in the background" else "Keep others out if someone picks up your phone",
+                subtitle = if (enabled) "Asked when you open Kosh, and after it's been in the background" else "Keep others out if someone picks up your phone",
                 checked = enabled,
                 onChange = { on -> if (on) settingPin = true else lock.disable() },
             )
@@ -103,7 +103,7 @@ fun SecurityScreen(onBack: () -> Unit) {
             }
         }
         Text(
-            "The lock covers the whole app, including when you open it from a notification. Your data is encrypted on the phone either way; the lock doesn't stop Impeesa logging new payments in the background.",
+            "The lock covers the whole app, including when you open it from a notification. Your data is encrypted on the phone either way; the lock doesn't stop Kosh logging new payments in the background.",
             style = ImpeesaTheme.type.caption,
             color = colors.textTertiary,
         )

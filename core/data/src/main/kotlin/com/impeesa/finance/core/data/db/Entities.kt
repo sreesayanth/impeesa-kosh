@@ -229,7 +229,7 @@ data class BalanceSnapshotEntity(
     @ColumnInfo(name = "as_of") val asOf: Long,
     /** SMS or MANUAL. */
     val source: String,
-    /** Snapshot minus what Impeesa had computed just before; the reconciliation difference. */
+    /** Snapshot minus what Kosh had computed just before; the reconciliation difference. */
     @ColumnInfo(name = "diff_paise") val diffPaise: Long = 0,
     @ColumnInfo(name = "raw_id") val rawId: Long? = null,
 )

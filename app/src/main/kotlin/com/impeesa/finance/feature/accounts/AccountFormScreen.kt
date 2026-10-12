@@ -274,7 +274,7 @@ fun AccountFormScreen(id: Long?, onBack: () -> Unit) {
         )
         if (state.isEditing) {
             Text(
-                "Used until your bank's SMS tells Impeesa the balance. To correct today's balance, use “Set balance” on the account.",
+                "Used until your bank's SMS tells Kosh the balance. To correct today's balance, use “Set balance” on the account.",
                 style = ImpeesaTheme.type.caption,
                 color = colors.textTertiary,
             )
@@ -307,7 +307,7 @@ fun AccountFormScreen(id: Long?, onBack: () -> Unit) {
                     modifier = Modifier.weight(1f),
                 )
             }
-            Text("With a due day, Impeesa reminds you 3 days before and on the day, even before a statement SMS arrives.", style = ImpeesaTheme.type.caption, color = colors.textTertiary)
+            Text("With a due day, Kosh reminds you 3 days before and on the day, even before a statement SMS arrives.", style = ImpeesaTheme.type.caption, color = colors.textTertiary)
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

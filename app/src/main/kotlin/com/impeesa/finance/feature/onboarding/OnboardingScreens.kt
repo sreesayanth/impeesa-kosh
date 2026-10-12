@@ -106,7 +106,7 @@ fun WelcomeScreen(onStart: () -> Unit) {
     OnboardingScaffold(step = 0) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Image(painterResource(R.drawable.ic_brand_mark), contentDescription = null, modifier = Modifier.size(44.dp))
-            Text("Impeesa Kosh", style = ImpeesaTheme.type.headline, color = colors.textPrimary)
+            Text("Kosh", style = ImpeesaTheme.type.headline, color = colors.textPrimary)
         }
         Spacer(Modifier.height(24.dp))
         Text(
@@ -116,7 +116,7 @@ fun WelcomeScreen(onStart: () -> Unit) {
             modifier = Modifier.semantics { heading() },
         )
         Text(
-            "Impeesa turns bank SMS into a clear picture of your money — without you typing a thing.",
+            "Kosh turns bank SMS into a clear picture of your money — without you typing a thing.",
             style = ImpeesaTheme.type.body,
             color = colors.textSecondary,
         )
@@ -162,11 +162,11 @@ fun SmsPermissionScreen(onGranted: () -> Unit, onSkip: () -> Unit) {
             modifier = Modifier.semantics { heading() },
         )
         Text(
-            "Impeesa reads your bank and card SMS and logs each transaction automatically.",
+            "Kosh reads your bank and card SMS and logs each transaction automatically.",
             style = ImpeesaTheme.type.body,
             color = colors.textSecondary,
         )
-        Bullet("Stays on your phone", "Messages are read on this device and never uploaded. Impeesa has no internet access.")
+        Bullet("Stays on your phone", "Messages are read on this device and never uploaded. Kosh has no internet access.")
         Bullet("Only money messages", "Personal chats and OTPs are ignored and never saved.")
         Bullet("Your choice", "You can turn this off any time in your phone's settings.")
         if (denied) {

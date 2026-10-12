@@ -246,7 +246,7 @@ fun AccountDetailScreen(id: Long, onBack: () -> Unit, onEdit: () -> Unit, onOpen
                         AccountType.CASH -> "Count your cash"
                         else -> "Current balance"
                     },
-                    hint = if (account?.type == AccountType.CARD) "From your card app or statement. Impeesa keeps counting from here." else "From your bank app or passbook. Impeesa keeps counting from here.",
+                    hint = if (account?.type == AccountType.CARD) "From your card app or statement. Kosh keeps counting from here." else "From your bank app or passbook. Kosh keeps counting from here.",
                     initial = account?.let { if (it.type == AccountType.CARD) it.owed else it.balance },
                     button = "Save",
                 ) { amount ->
