@@ -45,6 +45,7 @@ fun SettingsScreen(
     onProfile: () -> Unit,
     onAutoCapture: () -> Unit,
     onRules: () -> Unit,
+    onBudgets: () -> Unit,
     onAccounts: () -> Unit,
 ) {
     val container = LocalAppContainer.current
@@ -90,6 +91,8 @@ fun SettingsScreen(
             SettingsRow(UiR.drawable.ic_tune, "Auto-capture", "SMS, payment apps and background tips", onAutoCapture)
             HorizontalDivider(color = colors.raised)
             SettingsRow(UiR.drawable.ic_insights, "Categories & rules", "How transactions get sorted", onRules)
+            HorizontalDivider(color = colors.raised)
+            SettingsRow(UiR.drawable.ic_calendar, "Budgets", "Monthly limits and when your month starts", onBudgets)
             HorizontalDivider(color = colors.raised)
             SettingsRow(UiR.drawable.ic_accounts, "Accounts", "Banks, cards, wallets and cash", onAccounts)
         }

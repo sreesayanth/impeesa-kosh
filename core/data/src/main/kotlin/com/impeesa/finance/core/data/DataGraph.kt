@@ -23,6 +23,8 @@ class DataGraph(context: Context, clock: Clock) {
     val transactionRepository: TransactionRepository by lazy { TransactionRepository(database, clock) }
     val reviewRepository: ReviewRepository by lazy { ReviewRepository(database, clock) }
     val categorizationRepository: CategorizationRepository by lazy { CategorizationRepository(database, clock) }
+    val analyticsRepository: AnalyticsRepository by lazy { AnalyticsRepository(database, clock) }
+    val budgetRepository: BudgetRepository by lazy { BudgetRepository(database, clock) }
     val captureRepository: CaptureRepository by lazy {
         CaptureRepository(appContext, database, DetectionEngine::withBundledData, clock)
     }

@@ -163,10 +163,14 @@ private const val ROW_JOINS = """
     LEFT JOIN accounts a ON a.id = t.account_id
 """
 
+/** Spending (§10.1): expenses in spending categories, minus refunds linked back to them. */
 private const val SPENDING_FILTER = """
-    t.deleted_at IS NULL AND t.status = 'CONFIRMED' AND t.type = 'EXPENSE'
-    AND t.excluded_from_spending = 0 AND (c.id IS NULL OR c.counts_as_spending = 1)
+    t.deleted_at IS NULL AND t.status = 'CONFIRMED'
+    AND ((t.type = 'EXPENSE' AND t.excluded_from_spending = 0) OR t.type = 'REFUND')
+    AND (c.id IS NULL OR c.counts_as_spending = 1)
 """
+
+private const val NET_AMOUNT = "CASE WHEN t.type = 'REFUND' THEN -t.amount_paise ELSE t.amount_paise END"
 
 @Dao
 interface TransactionDao {
@@ -229,7 +233,7 @@ interface TransactionDao {
         amountPaise: Long?,
     ): PagingSource<Int, TransactionRow>
 
-    @Query("SELECT COALESCE(SUM(t.amount_paise), 0) FROM transactions t LEFT JOIN categories c ON c.id = t.category_id WHERE $SPENDING_FILTER AND t.local_date BETWEEN :fromDate AND :toDate")
+    @Query("SELECT COALESCE(SUM($NET_AMOUNT), 0) FROM transactions t LEFT JOIN categories c ON c.id = t.category_id WHERE $SPENDING_FILTER AND t.local_date BETWEEN :fromDate AND :toDate")
     fun observeSpending(fromDate: Int, toDate: Int): Flow<Long>
 
     @Query(
@@ -241,7 +245,7 @@ interface TransactionDao {
     )
     fun observeIncome(fromDate: Int, toDate: Int): Flow<Long>
 
-    @Query("SELECT t.local_date AS date, SUM(t.amount_paise) AS total FROM transactions t LEFT JOIN categories c ON c.id = t.category_id WHERE $SPENDING_FILTER AND t.local_date >= :fromDate GROUP BY t.local_date")
+    @Query("SELECT t.local_date AS date, SUM($NET_AMOUNT) AS total FROM transactions t LEFT JOIN categories c ON c.id = t.category_id WHERE $SPENDING_FILTER AND t.local_date >= :fromDate GROUP BY t.local_date")
     fun observeDailySpending(fromDate: Int): Flow<List<DayTotal>>
 
     @Query("SELECT COUNT(*) FROM transactions WHERE deleted_at IS NULL")

@@ -192,3 +192,25 @@ data class CategoryCorrectionEntity(
     @ColumnInfo(name = "transaction_id") val transactionId: Long?,
     val at: Long,
 )
+/** A monthly budget: overall when [categoryId] is null (IMPLEMENTATION_PLAN.md §5.8). */
+@Entity(tableName = "budgets", indices = [Index("category_id")])
+data class BudgetEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "category_id") val categoryId: Long?,
+    @ColumnInfo(name = "amount_paise") val amountPaise: Long,
+    /** Warn when this share of the budget is used: 50, 80 or 100. */
+    @ColumnInfo(name = "alert_pct") val alertPct: Int = 80,
+    /** Add last period's unspent money to this one. */
+    val rollover: Boolean = false,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    val archived: Boolean = false,
+)
+
+/** The user's verdict on a detected recurring payment, by payee key. */
+@Entity(tableName = "recurring_prefs")
+data class RecurringPrefEntity(
+    @PrimaryKey val key: String,
+    /** HIDDEN: "not a subscription". */
+    val status: String,
+    val at: Long,
+)

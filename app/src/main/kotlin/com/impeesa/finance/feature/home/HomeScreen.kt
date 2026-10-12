@@ -63,10 +63,14 @@ fun HomeScreen(
     onAutoCapture: () -> Unit,
     onSettings: () -> Unit,
     onProfile: () -> Unit,
+    onBudgets: () -> Unit,
+    onInsights: () -> Unit,
 ) {
     val container = LocalAppContainer.current
     val context = LocalContext.current
-    val viewModel = viewModel { HomeViewModel(container.transactionRepository, container.accountRepository, container.reviewRepository, container.clock) }
+    val viewModel = viewModel {
+        HomeViewModel(container.transactionRepository, container.accountRepository, container.reviewRepository, container.analyticsRepository, container.moneyOverview, container.prefs, container.clock)
+    }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val profile by container.prefs.profile.collectAsStateWithLifecycle()
     val colors = ImpeesaTheme.colors
@@ -119,9 +123,12 @@ fun HomeScreen(
                 )
             }
         }
-        item(key = "hero") { SpentCard(state) }
+        item(key = "hero") { BudgetHero(state, onBudgets) }
         if (state.accounts.isNotEmpty()) {
             item(key = "accounts") { AccountStrip(state.accounts, onAccounts) }
+        }
+        if (!state.isEmpty) {
+            item(key = "week") { WeekCard(state, onInsights, onDismissInsight = viewModel::dismissInsight) }
         }
         if (state.isEmpty) {
             item(key = "empty") {
@@ -208,29 +215,6 @@ private fun Header(greeting: Greeting, profile: Profile, onProfile: () -> Unit, 
             )
         }
         CircleIconButton(icon = UiR.drawable.ic_tune, contentDescription = "Settings", onClick = onSettings)
-    }
-}
-
-@Composable
-private fun SpentCard(state: HomeUiState) {
-    val colors = ImpeesaTheme.colors
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp))
-            .background(colors.lime)
-            .padding(22.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Text(stringResource(R.string.home_spent_in, state.monthName), style = ImpeesaTheme.type.label, color = colors.onLime)
-        AmountText(money = state.spent, style = ImpeesaTheme.type.hero, color = colors.onLime)
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.home_income), style = ImpeesaTheme.type.label, color = colors.onLime.copy(alpha = 0.75f))
-            AmountText(money = state.income, style = ImpeesaTheme.type.label, color = colors.onLime)
-            Text("·", style = ImpeesaTheme.type.label, color = colors.onLime.copy(alpha = 0.75f))
-            Text("Saved", style = ImpeesaTheme.type.label, color = colors.onLime.copy(alpha = 0.75f))
-            AmountText(money = state.income - state.spent, style = ImpeesaTheme.type.label, color = colors.onLime)
-        }
     }
 }
 

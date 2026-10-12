@@ -56,7 +56,10 @@ import com.impeesa.finance.feature.activity.ActivityScreen
 import com.impeesa.finance.feature.add.AddTransactionScreen
 import com.impeesa.finance.feature.detail.DetailScreen
 import com.impeesa.finance.feature.home.HomeScreen
-import com.impeesa.finance.feature.placeholder.ComingSoonScreen
+import com.impeesa.finance.feature.budgets.BudgetEditorScreen
+import com.impeesa.finance.feature.budgets.BudgetsScreen
+import com.impeesa.finance.feature.insights.HabitsScreen
+import com.impeesa.finance.feature.insights.InsightsScreen
 import com.impeesa.finance.feature.onboarding.ImportScreen
 import com.impeesa.finance.feature.onboarding.SmsPermissionScreen
 import com.impeesa.finance.feature.onboarding.WelcomeScreen
@@ -92,6 +95,9 @@ import com.impeesa.finance.core.ui.R as UiR
 @Serializable data object RulesRoute
 @Serializable data class RuleEditorRoute(val id: Long = 0L)
 @Serializable data class CategoryEditorRoute(val id: Long = 0L)
+@Serializable data object HabitsRoute
+@Serializable data object BudgetsRoute
+@Serializable data class BudgetEditorRoute(val id: Long = 0L)
 
 private data class Tab(val route: Any, @StringRes val label: Int, @DrawableRes val icon: Int)
 
@@ -144,6 +150,7 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
                     onProfile = { navController.navigate(EditProfileRoute) },
                     onAutoCapture = { navController.navigate(SourcesRoute) },
                     onRules = { navController.navigate(RulesRoute) },
+                    onBudgets = { navController.navigate(BudgetsRoute) },
                     onAccounts = { navController.switchTab(AccountsRoute) },
                 )
             }
@@ -201,9 +208,24 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
                     onAutoCapture = { navController.navigate(SourcesRoute) },
                     onSettings = { navController.navigate(SettingsRoute) },
                     onProfile = { navController.navigate(EditProfileRoute) },
+                    onBudgets = { navController.navigate(BudgetsRoute) },
+                    onInsights = { navController.switchTab(InsightsRoute) },
                 )
             }
-            composable<InsightsRoute> { ComingSoonScreen(title = "Insights", phase = "Phase 6") }
+            composable<InsightsRoute> {
+                InsightsScreen(onHabits = { navController.navigate(HabitsRoute) }, onBudgets = { navController.navigate(BudgetsRoute) })
+            }
+            composable<HabitsRoute> { HabitsScreen(onBack = { navController.popBackStack() }) }
+            composable<BudgetsRoute> {
+                BudgetsScreen(
+                    onBack = { navController.popBackStack() },
+                    onNew = { navController.navigate(BudgetEditorRoute()) },
+                    onEdit = { navController.navigate(BudgetEditorRoute(it)) },
+                )
+            }
+            composable<BudgetEditorRoute> { entry ->
+                BudgetEditorScreen(budgetId = entry.toRoute<BudgetEditorRoute>().id, onBack = { navController.popBackStack() })
+            }
             composable<ActivityRoute> {
                 ActivityScreen(onOpen = { navController.navigate(DetailRoute(it)) })
             }

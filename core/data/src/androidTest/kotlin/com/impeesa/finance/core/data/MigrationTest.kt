@@ -74,6 +74,26 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun version4To5AddsBudgets() {
+        helper.createDatabase(DB, 4).apply {
+            execSQL(
+                "INSERT INTO rules (id, match_type, pattern, label, action, category_id, source, enabled, priority, match_count, created_at) " +
+                    "VALUES (1, 'MERCHANT', 'SWIGGY', 'Swiggy', 'SET_CATEGORY', 2, 'EDIT', 1, 0, 3, 0)",
+            )
+            close()
+        }
+        val db = helper.runMigrationsAndValidate(DB, 5, true)
+        db.query("SELECT match_count FROM rules WHERE id = 1").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(3, cursor.getInt(0))
+        }
+        db.query("SELECT COUNT(*) FROM budgets").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(0, cursor.getInt(0))
+        }
+    }
+
     private companion object {
         const val DB = "migration-test"
     }
