@@ -63,4 +63,12 @@ interface CaptureDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertIdentifier(identifier: AccountIdentifierEntity)
+
+    /** Retention (§9.7): drops message texts older than [before]; the hash stays so they're never re-captured. */
+    @Query("UPDATE raw_messages SET body = NULL WHERE body IS NOT NULL AND received_at < :before")
+    suspend fun clearBodiesBefore(before: Long): Int
+
+    /** Soft-deleted transactions are kept 30 days for undo, then removed. */
+    @Query("DELETE FROM transactions WHERE deleted_at IS NOT NULL AND deleted_at < :before")
+    suspend fun purgeDeletedTransactions(before: Long): Int
 }

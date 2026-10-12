@@ -8,9 +8,9 @@
 
 **A private personal-finance app for Android that tracks your money from bank SMS and UPI alerts, automatically and entirely on your phone.**
 
-[![Download APK](https://img.shields.io/badge/Download-APK%20v0.7.0-C5F26B?style=for-the-badge&logo=android&logoColor=0B0D10&labelColor=0B0D10)](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.7.0.apk)
+[![Download APK](https://img.shields.io/badge/Download-APK%20v0.8.0-C5F26B?style=for-the-badge&logo=android&logoColor=0B0D10&labelColor=0B0D10)](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.8.0.apk)
 
-![Version](https://img.shields.io/badge/version-0.7.0-C5F26B?labelColor=15181D)
+![Version](https://img.shields.io/badge/version-0.8.0-C5F26B?labelColor=15181D)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white&labelColor=15181D)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white&labelColor=15181D)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=jetpackcompose&logoColor=white&labelColor=15181D)
@@ -35,20 +35,20 @@ The app has **no internet permission at all**. The build fails if any library tr
 <tr>
 <td width="60%">
 
-### Impeesa Kosh 0.7.0
+### Impeesa Kosh 0.8.0
 
 | | |
 |---|---|
-| **File** | [`impeesa-kosh-0.7.0.apk`](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.7.0.apk) |
-| **Size** | 11.5 MB |
+| **File** | [`impeesa-kosh-0.8.0.apk`](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.8.0.apk) |
+| **Size** | 12.2 MB |
 | **Requires** | Android 8.0 (API 26) or newer, ARM phone |
 | **Package** | `com.impeesa.finance` |
-| **SHA-256** | `564729065731443FA164ACBAC354C4CED6777C3A30A838323ADD642A525F0B92` |
+| **SHA-256** | `34703FEDE0A58004C1A1FB60EFEA725BC19D3F927E6E0F3E3A1BE472BF2E0194` |
 
 </td>
 <td width="40%" align="center">
 
-<a href="https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.7.0.apk"><img src="https://img.shields.io/badge/⬇%20Download%20APK-0.7.0-C5F26B?style=for-the-badge&labelColor=0B0D10" alt="Download APK"></a>
+<a href="https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.8.0.apk"><img src="https://img.shields.io/badge/⬇%20Download%20APK-0.8.0-C5F26B?style=for-the-badge&labelColor=0B0D10" alt="Download APK"></a>
 
 <sub>Or browse the <a href="release/">release folder</a></sub>
 
@@ -145,6 +145,9 @@ The app has **no internet permission at all**. The build fails if any library tr
 | **Minimal reading** | Only messages from known financial senders are parsed. Personal chats and OTPs are skipped and only counted. |
 | **No accounts, no bank logins** | Nothing to sign up for and nothing to link. Your profile (name and colour) is stored only on the phone. |
 | **Prominent disclosure** | Onboarding shows what is read and why, before any permission prompt. |
+| **App lock** | PIN (stored as a salted PBKDF2 hash) plus fingerprint or face. It locks after 0, 1 or 5 minutes in the background, also covers notification taps, and backs off after wrong PINs. Forgot your PIN? Confirm with the phone's screen lock. |
+| **Your backups, your key** | Backups are AES-256-GCM encrypted with your passphrase (PBKDF2, 600,000 rounds) and saved where you choose through the system file picker, Google Drive included, while Impeesa itself stays offline. Weekly backups keep the last 4. Android's cloud backup is off. |
+| **Retention and delete-all** | Message texts are kept 30/90/180 days, forever or not at all. *Delete all data* (type DELETE, then confirm with your screen lock) removes the database, its key and every setting. |
 
 ## ⚙️ How it works
 
@@ -224,8 +227,9 @@ Both batches are now part of the corpus. To contribute real formats safely, anon
 - [x] **Phase 5:** categorisation that learns from corrections, rules (merchant, UPI ID, text, account, amount), apply to history, categories editor, Settings
 - [x] **Phase 6:** budgets (salary-cycle months, carry-over, suggestions, rebalance), Insights, Habits, charts, recurring and salary detection, insight rules
 - [x] **Phase 7:** balance snapshots and reconciliation, account and card detail, statements from SMS, auto-mark paid, alerts engine with 11 alert types, Alerts screen and settings
-- [ ] **Phase 8:** app lock, encrypted backup and restore, export, delete all data
-- [ ] **Later:** polish and accessibility pass, widgets and quick settings tile, Play Store release
+- [x] **Phase 8:** app lock with fingerprint, hide balances, recents protection, encrypted backup and restore, weekly backup, CSV and PDF export, message retention, delete all data, privacy page
+- [ ] **Phase 9:** polish, accessibility, performance
+- [ ] **Phase 10:** release signing and Play Store
 
 The full plan, including the technology decisions, data model, security and testing strategy, is in **[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)**.
 

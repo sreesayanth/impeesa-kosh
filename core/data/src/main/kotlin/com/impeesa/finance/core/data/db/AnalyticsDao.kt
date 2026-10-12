@@ -14,6 +14,18 @@ data class CategoryTotalRow(val categoryId: Long?, val name: String?, val color:
 
 data class MerchantTotalRow(val payeeKey: String, val label: String?, val total: Long, val count: Int)
 
+data class ExportRow(
+    val occurredAt: Long,
+    val account: String?,
+    val counterparty: String?,
+    val category: String?,
+    val amountPaise: Long,
+    val direction: Direction,
+    val type: String,
+    val note: String?,
+    val source: String,
+)
+
 data class OccurrenceRow(val payeeKey: String, val label: String?, val amountPaise: Long, val localDate: Int, val direction: Direction)
 
 /** Linked refunds count against the purchase's category (§10.1); unlinked ones sit in the non-spending "Refunds". */
@@ -101,6 +113,20 @@ internal interface AnalyticsDao {
         """,
     )
     fun observeFoodOrderTimes(fromDate: Int, toDate: Int): Flow<List<Long>>
+
+    /** Every confirmed transaction in a date range, for CSV export (§9.8). */
+    @Query(
+        """
+        SELECT t.occurred_at AS occurredAt, a.name AS account, t.counterparty, c.name AS category,
+               t.amount_paise AS amountPaise, t.direction, t.type, t.note, t.source
+        FROM transactions t
+        LEFT JOIN accounts a ON a.id = t.account_id
+        LEFT JOIN categories c ON c.id = t.category_id
+        WHERE t.deleted_at IS NULL AND t.status = 'CONFIRMED' AND t.local_date BETWEEN :fromDate AND :toDate
+        ORDER BY t.occurred_at, t.id
+        """,
+    )
+    suspend fun exportRows(fromDate: Int, toDate: Int): List<ExportRow>
 
     // ------------------------------------------------------------ budgets
 

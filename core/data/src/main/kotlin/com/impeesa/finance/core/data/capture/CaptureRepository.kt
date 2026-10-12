@@ -118,6 +118,29 @@ class CaptureRepository internal constructor(
     private fun isEnabled(app: PaymentApp): Boolean =
         prefs.getBoolean(KEY_APP_PREFIX + app.packageName, app.kind != AppKind.MESSAGING)
 
+    /**
+     * How long original message texts are kept (IMPLEMENTATION_PLAN.md §9.7): days, [KEEP_FOREVER] or
+     * [KEEP_NEVER]. Extracted fields always stay on the transaction.
+     */
+    var messageRetentionDays: Int
+        get() = prefs.getInt(KEY_RETENTION, DEFAULT_RETENTION_DAYS)
+        set(value) = prefs.edit().putInt(KEY_RETENTION, value).apply()
+
+    /** Clears expired message texts and removes transactions deleted more than 30 days ago. */
+    suspend fun purgeExpired(): Int = writer.withLock {
+        val now = clock.millis()
+        db.withTransaction {
+            val retention = messageRetentionDays
+            val cleared = when (retention) {
+                KEEP_FOREVER -> 0
+                KEEP_NEVER -> capture.clearBodiesBefore(Long.MAX_VALUE)
+                else -> capture.clearBodiesBefore(now - Duration.ofDays(retention.toLong()).toMillis())
+            }
+            capture.purgeDeletedTransactions(now - Duration.ofDays(DELETED_KEEP_DAYS).toMillis())
+            cleared
+        }
+    }
+
     // ---------------------------------------------------------------- entry points
 
     suspend fun ingest(envelope: MessageEnvelope): IngestResult = writer.withLock { ingestLocked(envelope, loadContext()) }
@@ -217,7 +240,8 @@ class CaptureRepository internal constructor(
                 source = envelope.source.name,
                 sender = envelope.sender,
                 title = envelope.title,
-                body = envelope.body,
+                // With retention set to never, the text isn't stored at all.
+                body = envelope.body.takeIf { messageRetentionDays != KEEP_NEVER },
                 receivedAt = envelope.receivedAt.toEpochMilli(),
                 sourceHash = hash,
                 parserVersion = PARSER_VERSION,
@@ -672,6 +696,12 @@ class CaptureRepository internal constructor(
         const val LINK_REFUND = "REFUND_OF"
         const val LINK_REVERSAL = "REVERSAL_OF"
 
+        const val KEEP_FOREVER = -1
+        const val KEEP_NEVER = 0
+        const val DEFAULT_RETENTION_DAYS = 180
+        val RETENTION_CHOICES = listOf(30, 90, 180, KEEP_FOREVER, KEEP_NEVER)
+        private const val KEY_RETENTION = "message_retention_days"
+        private const val DELETED_KEEP_DAYS = 30L
         private const val KEY_WATERMARK = "inbox_watermark"
         private const val KEY_APP_PREFIX = "app_enabled:"
         private const val PARSER_VERSION = 1

@@ -71,6 +71,9 @@ import com.impeesa.finance.feature.profile.ProfileSetupScreen
 import com.impeesa.finance.feature.rules.CategoryEditorScreen
 import com.impeesa.finance.feature.rules.RuleEditorScreen
 import com.impeesa.finance.feature.rules.RulesScreen
+import com.impeesa.finance.feature.settings.DataScreen
+import com.impeesa.finance.feature.settings.PrivacyScreen
+import com.impeesa.finance.feature.settings.SecurityScreen
 import com.impeesa.finance.feature.settings.SettingsScreen
 import com.impeesa.finance.feature.review.ReviewScreen
 import com.impeesa.finance.feature.sources.SourcesScreen
@@ -104,6 +107,9 @@ import com.impeesa.finance.core.ui.R as UiR
 @Serializable data class AccountDetailRoute(val id: Long)
 @Serializable data object AlertsRoute
 @Serializable data object AlertSettingsRoute
+@Serializable data object SecurityRoute
+@Serializable data object DataRoute
+@Serializable data object PrivacyRoute
 
 private data class Tab(val route: Any, @StringRes val label: Int, @DrawableRes val icon: Int)
 
@@ -179,8 +185,14 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
                     onBudgets = { navController.navigate(BudgetsRoute) },
                     onAlerts = { navController.navigate(AlertSettingsRoute) },
                     onAccounts = { navController.switchTab(AccountsRoute) },
+                    onSecurity = { navController.navigate(SecurityRoute) },
+                    onData = { navController.navigate(DataRoute) },
+                    onPrivacy = { navController.navigate(PrivacyRoute) },
                 )
             }
+            composable<SecurityRoute> { SecurityScreen(onBack = { navController.popBackStack() }) }
+            composable<DataRoute> { DataScreen(onBack = { navController.popBackStack() }) }
+            composable<PrivacyRoute> { PrivacyScreen(onBack = { navController.popBackStack() }) }
             composable<RulesRoute> {
                 RulesScreen(
                     onBack = { navController.popBackStack() },

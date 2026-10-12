@@ -1,6 +1,13 @@
 package com.impeesa.finance
 
+import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
+import androidx.work.WorkManager
+import com.impeesa.finance.backup.BackupService
+import com.impeesa.finance.security.AppLock
+import com.impeesa.finance.security.PassphraseVault
+import java.io.File
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.impeesa.finance.capture.CaptureNotifier
 import com.impeesa.finance.alerts.AlertEngine
@@ -43,11 +50,39 @@ class AppContainer(context: Context) {
     val ledgerRepository get() = data.ledgerRepository
     val moneyOverview by lazy { MoneyOverview(data.analyticsRepository, data.budgetRepository, data.categoryRepository) }
 
+    val backupRepository get() = data.backupRepository
+
     val notifier = CaptureNotifier(appContext) { data.reviewRepository }
     val alertNotifier = AlertNotifier(appContext, notifier)
     val alertEngine by lazy { AlertEngine(appContext, this) }
+    val appLock = AppLock(appContext)
+    val passphraseVault = PassphraseVault(appContext)
+    val backups by lazy { BackupService(appContext, this) }
 
     suspend fun seed() = data.seed()
+
+    /**
+     * "Delete all data" (IMPLEMENTATION_PLAN.md §5.12): stops background work, removes the database,
+     * its key, the backup passphrase and every preference file, then restarts the app fresh.
+     */
+    fun wipeEverything() {
+        WorkManager.getInstance(appContext).cancelAllWork()
+        WorkManager.getInstance(appContext).pruneWork()
+        appContext.getSystemService(NotificationManager::class.java).cancelAll()
+        data.wipe()
+        passphraseVault.clear()
+        File(appContext.applicationInfo.dataDir, "shared_prefs").listFiles()?.forEach { file ->
+            appContext.deleteSharedPreferences(file.nameWithoutExtension)
+        }
+        val restart = Intent(appContext, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        appContext.startActivity(restart)
+        Runtime.getRuntime().exit(0)
+    }
+
+    /** Anything [wipeEverything] would leave behind; empty after a wipe (tested). */
+    fun leftovers(): List<String> = data.leftovers() +
+        (if (passphraseVault.exists()) listOf("backup passphrase") else emptyList()) +
+        (File(appContext.applicationInfo.dataDir, "shared_prefs").listFiles()?.map { "prefs: ${it.name}" }.orEmpty())
 }
 
 /** Small app settings kept in SharedPreferences. */

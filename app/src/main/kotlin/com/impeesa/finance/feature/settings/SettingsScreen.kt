@@ -48,6 +48,9 @@ fun SettingsScreen(
     onBudgets: () -> Unit,
     onAlerts: () -> Unit,
     onAccounts: () -> Unit,
+    onSecurity: () -> Unit,
+    onData: () -> Unit,
+    onPrivacy: () -> Unit,
 ) {
     val container = LocalAppContainer.current
     val context = LocalContext.current
@@ -98,6 +101,15 @@ fun SettingsScreen(
             SettingsRow(UiR.drawable.ic_accounts, "Accounts", "Banks, cards, wallets and cash", onAccounts)
             HorizontalDivider(color = colors.raised)
             SettingsRow(UiR.drawable.ic_bell, "Alerts", "Bill reminders, budgets, renewals and more", onAlerts)
+        }
+
+        SectionLabel("Security & your data")
+        Group {
+            SettingsRow(UiR.drawable.ic_person, "Security & privacy", "App lock, fingerprint, hide balances", onSecurity)
+            HorizontalDivider(color = colors.raised)
+            SettingsRow(UiR.drawable.ic_accounts, "Backup & data", "Encrypted backup, restore, export, delete all", onData)
+            HorizontalDivider(color = colors.raised)
+            SettingsRow(UiR.drawable.ic_insights, "Privacy & about", "What Impeesa reads and keeps", onPrivacy)
         }
 
         Text(

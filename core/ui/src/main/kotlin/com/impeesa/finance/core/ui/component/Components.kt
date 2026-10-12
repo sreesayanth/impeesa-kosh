@@ -38,6 +38,9 @@ import com.impeesa.finance.core.model.Money
 import com.impeesa.finance.core.model.MoneyFormat
 import com.impeesa.finance.core.ui.theme.ImpeesaTheme
 
+/** "Hide balances" (IMPLEMENTATION_PLAN.md §5.7): when true, amounts show as dots, against shoulder surfing. */
+val LocalAmountsHidden = androidx.compose.runtime.staticCompositionLocalOf { false }
+
 /** Money with the right font, sign and a spoken label for TalkBack. */
 @Composable
 fun AmountText(
@@ -48,9 +51,10 @@ fun AmountText(
     signed: Boolean = false,
     showPaise: Boolean = false,
 ) {
+    val hidden = LocalAmountsHidden.current
     Text(
-        text = MoneyFormat.format(money, signed = signed, showPaise = showPaise),
-        modifier = modifier.semantics { contentDescription = MoneyFormat.spoken(money) },
+        text = if (hidden) "₹ ••••" else MoneyFormat.format(money, signed = signed, showPaise = showPaise),
+        modifier = modifier.semantics { contentDescription = if (hidden) "Amount hidden" else MoneyFormat.spoken(money) },
         style = style,
         color = color,
         maxLines = 1,

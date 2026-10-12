@@ -40,7 +40,7 @@ internal abstract class ImpeesaDatabase : RoomDatabase() {
     abstract fun ledgerDao(): LedgerDao
 
     companion object {
-        private const val NAME = "impeesa.db"
+        const val NAME = "impeesa.db"
 
         /** Opens the encrypted database. Call off the main thread: it touches the Keystore. */
         fun create(context: Context, keyManager: DatabaseKeyManager): ImpeesaDatabase {

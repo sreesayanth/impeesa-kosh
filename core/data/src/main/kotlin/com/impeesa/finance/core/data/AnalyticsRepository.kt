@@ -9,6 +9,7 @@ import com.impeesa.finance.core.model.DateKey
 import com.impeesa.finance.core.model.Direction
 import com.impeesa.finance.core.model.Money
 import com.impeesa.finance.core.model.analytics.DayFlow
+import com.impeesa.finance.core.model.backup.Csv
 import com.impeesa.finance.core.model.analytics.Occurrence
 import com.impeesa.finance.core.model.analytics.Period
 import com.impeesa.finance.core.model.analytics.RecurringDetector
@@ -61,6 +62,29 @@ class AnalyticsRepository internal constructor(
         }
         val series = RecurringDetector.detect(occurrences, today).filterNot { it.key in hidden }
         RecurringSummary(series, RecurringDetector.salaryDay(series, occurrences))
+    }
+
+    /** CSV lines (with header) for every confirmed transaction in [period]. Amounts are signed rupees. */
+    suspend fun exportCsv(period: Period): String {
+        val rows = dao.exportRows(period.keys.first, period.keys.last)
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+        return buildString {
+            appendLine(Csv.row(listOf("Date", "Account", "Merchant", "Category", "Amount", "Type", "Note", "Source")))
+            rows.forEach { r ->
+                val signed = if (r.direction == Direction.DEBIT) -r.amountPaise else r.amountPaise
+                val rupees = (if (signed < 0) "-" else "") + "${kotlin.math.abs(signed) / 100}.${(kotlin.math.abs(signed) % 100).toString().padStart(2, '0')}"
+                appendLine(
+                    Csv.row(
+                        listOf(
+                            Instant.ofEpochMilli(r.occurredAt).atZone(clock.zone).format(formatter),
+                            r.account, r.counterparty, r.category, rupees,
+                            r.type.lowercase().replaceFirstChar { it.uppercase() }, r.note,
+                            r.source.lowercase().replaceFirstChar { it.uppercase() },
+                        ),
+                    ),
+                )
+            }
+        }
     }
 
     /** "Not a subscription": hides a detected series. */

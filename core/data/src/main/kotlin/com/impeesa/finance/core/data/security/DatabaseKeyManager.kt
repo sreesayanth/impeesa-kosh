@@ -29,6 +29,16 @@ class DatabaseKeyManager(context: Context) {
         return raw
     }
 
+    /** Deletes the wrapped key file and the Keystore key: the database can never be opened again. */
+    @Synchronized
+    fun destroy() {
+        keyFile.delete()
+        File(keyFile.parentFile, "$KEY_FILE.tmp").delete()
+        KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }.let { if (it.containsAlias(ALIAS)) it.deleteEntry(ALIAS) }
+    }
+
+    fun keyFileExists(): Boolean = keyFile.exists()
+
     private fun wrappingKey(): SecretKey {
         val store = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
         (store.getKey(ALIAS, null) as? SecretKey)?.let { return it }
