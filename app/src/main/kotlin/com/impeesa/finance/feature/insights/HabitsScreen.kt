@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
@@ -322,7 +323,7 @@ private fun RecurringCard(state: HabitsUiState, onHide: (RecurringSeries) -> Uni
                         "Not recurring",
                         style = ImpeesaTheme.type.caption,
                         color = colors.textTertiary,
-                        modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button) { onHide(s) }.padding(2.dp),
+                        modifier = Modifier.minimumInteractiveComponentSize().clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClickLabel = "Not a recurring payment") { onHide(s) }.padding(horizontal = 4.dp, vertical = 12.dp),
                     )
                 }
             }

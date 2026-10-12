@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -41,7 +42,8 @@ fun CircleIconButton(
     modifier: Modifier = Modifier,
     tint: Color = ImpeesaTheme.colors.textPrimary,
     background: Color = ImpeesaTheme.colors.card,
-    size: Dp = 44.dp,
+    // 48 dp: the minimum touch target (IMPLEMENTATION_PLAN.md §11.4).
+    size: Dp = 48.dp,
 ) {
     val colors = ImpeesaTheme.colors
     Box(
@@ -78,8 +80,8 @@ fun ScreenHeader(
             title,
             style = ImpeesaTheme.type.headline,
             color = ImpeesaTheme.colors.textPrimary,
-            modifier = Modifier.weight(1f),
-            maxLines = 1,
+            modifier = Modifier.weight(1f).semantics { heading() },
+            maxLines = 2,
         )
         trailing()
     }

@@ -14,5 +14,11 @@
     <string name="home_recent">Recent</string>
     <string name="home_empty_title">Your month starts here</string>
     <string name="home_empty_body">Add your first spend and Impeesa will begin drawing your charts.</string>
-    <string name="coming_soon_body">This screen arrives in %1$s of the plan.</string>
+    <string name="shortcut_add">Add spend</string>
+    <string name="shortcut_add_long">Add a cash or manual spend</string>
+    <string name="shortcut_review">Review</string>
+    <string name="shortcut_review_long">Review new transactions</string>
+    <string name="shortcut_insights">Insights</string>
+    <string name="shortcut_insights_long">See where your money went</string>
+    <string name="tile_add">Add spend</string>
 </resources>

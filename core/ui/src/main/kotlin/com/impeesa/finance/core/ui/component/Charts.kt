@@ -1,6 +1,7 @@
 package com.impeesa.finance.core.ui.component
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -47,6 +48,12 @@ import com.impeesa.finance.core.ui.theme.ImpeesaTheme
 
 private val ChartEasing = FastOutSlowInEasing
 
+/** Runs a chart's entrance animation once, or jumps straight to the end when animations are off (§11.2). */
+@Composable
+private fun Entrance(anim: Animatable<Float, AnimationVector1D>, millis: Int) {
+    val reduce = LocalReduceMotion.current
+    LaunchedEffect(Unit) { if (reduce) anim.snapTo(1f) else anim.animateTo(1f, tween(millis, easing = ChartEasing)) }
+}
 /** One slice of a [DonutChart]. */
 @Immutable
 data class DonutSlice(val value: Float, val color: Color)
@@ -66,7 +73,7 @@ fun DonutChart(
 ) {
     val colors = ImpeesaTheme.colors
     val sweep = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { sweep.animateTo(1f, tween(900, easing = ChartEasing)) }
+    Entrance(sweep, 900)
     val total = slices.sumOf { it.value.toDouble() }.toFloat()
     // Each slice's share animates on its own so a period switch morphs instead of jumping.
     val shares = slices.mapIndexed { i, s ->
@@ -107,7 +114,7 @@ fun BarChart(
 ) {
     val colors = ImpeesaTheme.colors
     val rise = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { rise.animateTo(1f, tween(800, easing = ChartEasing)) }
+    Entrance(rise, 800)
     val max = (values.maxOrNull() ?: 0L).coerceAtLeast(1L)
     Column(modifier.clearAndSetSemantics { contentDescription = description }, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth().height(height), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
@@ -168,7 +175,7 @@ fun GroupedBarChart(
 ) {
     val colors = ImpeesaTheme.colors
     val rise = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { rise.animateTo(1f, tween(900, easing = ChartEasing)) }
+    Entrance(rise, 900)
     val max = pairs.maxOfOrNull { maxOf(it.first, it.second) }?.coerceAtLeast(1L) ?: 1L
     Column(modifier.clearAndSetSemantics { contentDescription = description }, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth().height(height), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
@@ -204,7 +211,7 @@ fun ProgressRing(
 ) {
     val colors = ImpeesaTheme.colors
     val grow = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { grow.animateTo(1f, tween(1100, easing = ChartEasing)) }
+    Entrance(grow, 1100)
     val value by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(600), label = "ring")
     Box(modifier.size(size).clearAndSetSemantics { contentDescription = description }, contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {

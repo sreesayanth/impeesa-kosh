@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,6 +35,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.impeesa.finance.LocalAppContainer
+import com.impeesa.finance.core.model.MoneyFormat
 import com.impeesa.finance.core.model.security.LockPolicy
 import com.impeesa.finance.core.ui.component.ImpeesaChip
 import com.impeesa.finance.core.ui.component.ScreenHeader
@@ -110,7 +112,7 @@ fun SecurityScreen(onBack: () -> Unit) {
         Card {
             ToggleRow("Hide from recent apps", "Recent-apps shows a blank card instead of your balances", recents, lock::setHideInRecents)
             Divider()
-            ToggleRow("Hide balances", "Show amounts as ₹ •••• until you turn this off", balances, lock::setHideBalances)
+            ToggleRow("Hide balances", "Show amounts as ${MoneyFormat.symbol.trim()} •••• until you turn this off", balances, lock::setHideBalances)
         }
     }
 
@@ -143,8 +145,9 @@ internal fun Divider() = HorizontalDivider(color = ImpeesaTheme.colors.raised)
 @Composable
 internal fun ToggleRow(title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     val colors = ImpeesaTheme.colors
+    // The whole row is one switch for TalkBack: label, description and on/off state (§11.4).
     Row(
-        Modifier.fillMaxWidth().clickable(role = Role.Switch) { onChange(!checked) }.padding(16.dp),
+        Modifier.fillMaxWidth().toggleable(value = checked, role = Role.Switch, onValueChange = onChange).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -152,6 +155,6 @@ internal fun ToggleRow(title: String, subtitle: String, checked: Boolean, onChan
             Text(title, style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
             Text(subtitle, style = ImpeesaTheme.type.caption, color = colors.textSecondary)
         }
-        Switch(checked = checked, onCheckedChange = onChange, colors = SwitchDefaults.colors(checkedTrackColor = colors.lime, checkedThumbColor = colors.ink))
+        Switch(checked = checked, onCheckedChange = null, colors = SwitchDefaults.colors(checkedTrackColor = colors.lime, checkedThumbColor = colors.ink))
     }
 }

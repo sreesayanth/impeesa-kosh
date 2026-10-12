@@ -42,6 +42,7 @@ import com.impeesa.finance.LocalAppContainer
 import com.impeesa.finance.core.data.AccountDraft
 import com.impeesa.finance.core.data.AccountSuggestion
 import com.impeesa.finance.core.data.AccountRepository
+import com.impeesa.finance.core.model.MoneyFormat
 import com.impeesa.finance.core.model.AccountType
 import com.impeesa.finance.core.model.AmountInput
 import com.impeesa.finance.core.model.Money
@@ -269,7 +270,7 @@ fun AccountFormScreen(id: Long?, onBack: () -> Unit) {
             },
             placeholder = "0",
             keyboardType = KeyboardType.Decimal,
-            prefix = "₹",
+            prefix = MoneyFormat.symbol.trim(),
         )
         if (state.isEditing) {
             Text(
@@ -286,7 +287,7 @@ fun AccountFormScreen(id: Long?, onBack: () -> Unit) {
                 label = "Credit limit",
                 placeholder = "Optional",
                 keyboardType = KeyboardType.Decimal,
-                prefix = "₹",
+                prefix = MoneyFormat.symbol.trim(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 ImpeesaTextField(

@@ -72,7 +72,7 @@ class DetectionEngine(
         if (template != null) score = maxOf(score, 0.95)
         score = score.coerceIn(0.0, 1.0)
 
-        val (route, reviewReason) = route(type, score, currency, amountMinor, gate, mask)
+        val (route, reviewReason) = route(type, score, currency, context.homeCurrency, amountMinor, gate, mask)
         return Analysis(
             type = type,
             route = route,
@@ -101,6 +101,7 @@ class DetectionEngine(
         type: MessageType,
         score: Double,
         currency: String,
+        home: String,
         amount: Long?,
         gate: Gate,
         mask: String?,
@@ -109,7 +110,7 @@ class DetectionEngine(
         MessageType.FAILED_BUT_DEBITED -> Route.REVIEW to ReviewReason.FAILED_BUT_DEBITED
         MessageType.TRANSACTION, MessageType.REFUND -> when {
             amount == null -> Route.DROP to null
-            currency != "INR" -> Route.REVIEW to ReviewReason.FOREIGN_CURRENCY
+            currency != home -> Route.REVIEW to ReviewReason.FOREIGN_CURRENCY
             score >= AUTO_LOG_THRESHOLD -> Route.AUTO_LOG to null
             score >= REVIEW_THRESHOLD -> Route.REVIEW to ReviewReason.LOW_CONFIDENCE
             gate.trusted -> Route.REVIEW to ReviewReason.LOW_CONFIDENCE

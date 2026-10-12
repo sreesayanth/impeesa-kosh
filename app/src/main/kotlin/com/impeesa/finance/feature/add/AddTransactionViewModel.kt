@@ -31,7 +31,10 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 
 /** A one-tap preset for common cash spends. */
-data class QuickPreset(val label: String, val amount: Money, val categoryName: String)
+data class QuickPreset(val name: String, val amount: Money, val categoryName: String) {
+    /** "Chai ₹20", in the user's currency. */
+    val label: String get() = "$name ${MoneyFormat.format(amount)}"
+}
 
 @Immutable
 data class AddUiState(
@@ -102,10 +105,10 @@ class AddTransactionViewModel(
     val saved: Flow<Unit> = savedChannel.receiveAsFlow()
 
     private val presets = listOf(
-        QuickPreset("Chai ₹20", Money.ofRupees(20), "Food & dining"),
-        QuickPreset("Auto ₹120", Money.ofRupees(120), "Travel"),
-        QuickPreset("Vegetables ₹350", Money.ofRupees(350), "Groceries"),
-        QuickPreset("Parking ₹40", Money.ofRupees(40), "Travel"),
+        QuickPreset("Chai", Money.ofRupees(20), "Food & dining"),
+        QuickPreset("Auto", Money.ofRupees(120), "Travel"),
+        QuickPreset("Vegetables", Money.ofRupees(350), "Groceries"),
+        QuickPreset("Parking", Money.ofRupees(40), "Travel"),
     )
 
     private val expenseCategories = categories.observe(CategoryKind.EXPENSE)
@@ -201,7 +204,7 @@ class AddTransactionViewModel(
                 input = AmountInput.of(preset.amount),
                 categoryId = categoryId,
                 accountId = state.value.accounts.firstOrNull { a -> a.type == AccountType.CASH }?.id ?: it.accountId,
-                note = if (it.note.isBlank()) preset.label.substringBefore(" ₹") else it.note,
+                note = if (it.note.isBlank()) preset.name else it.note,
                 error = null,
             )
         }

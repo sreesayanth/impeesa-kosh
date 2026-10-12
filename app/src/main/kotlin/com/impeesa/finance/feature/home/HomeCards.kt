@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -147,7 +148,7 @@ internal fun WeekCard(state: HomeUiState, onInsights: () -> Unit, onDismissInsig
                     painterResource(UiR.drawable.ic_close),
                     contentDescription = "Dismiss insight",
                     tint = colors.textTertiary,
-                    modifier = Modifier.size(28.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button) { onDismissInsight(insight) }.padding(6.dp),
+                    modifier = Modifier.minimumInteractiveComponentSize().clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button) { onDismissInsight(insight) }.padding(12.dp).size(16.dp),
                 )
             }
         }

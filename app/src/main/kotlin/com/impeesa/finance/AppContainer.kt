@@ -13,6 +13,10 @@ import com.impeesa.finance.capture.CaptureNotifier
 import com.impeesa.finance.alerts.AlertEngine
 import com.impeesa.finance.alerts.AlertNotifier
 import com.impeesa.finance.core.data.DataGraph
+import com.impeesa.finance.core.model.Currencies
+import com.impeesa.finance.core.model.DigitGrouping
+import com.impeesa.finance.core.model.MoneyFormat
+import com.impeesa.finance.core.model.MoneySettings
 import com.impeesa.finance.core.model.alerts.AlertKind
 import com.impeesa.finance.feature.profile.Profile
 import com.impeesa.finance.ui.UndoBus
@@ -59,7 +63,25 @@ class AppContainer(context: Context) {
     val passphraseVault = PassphraseVault(appContext)
     val backups by lazy { BackupService(appContext, this) }
 
-    suspend fun seed() = data.seed()
+    /** Set when the encrypted database can't be opened (e.g. the Keystore key was lost, §12.3). */
+    val databaseError = MutableStateFlow<String?>(null)
+
+    suspend fun seed() {
+        try {
+            data.seed()
+        } catch (e: Exception) {
+            databaseError.value = e.message ?: e.javaClass.simpleName
+        }
+    }
+
+    /** Recovery: removes only the unreadable database and its key, keeps settings, and restarts. */
+    fun resetDatabase() {
+        WorkManager.getInstance(appContext).cancelAllWork()
+        data.wipe()
+        val restart = Intent(appContext, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        appContext.startActivity(restart)
+        Runtime.getRuntime().exit(0)
+    }
 
     /**
      * "Delete all data" (IMPLEMENTATION_PLAN.md §5.12): stops background work, removes the database,
@@ -116,6 +138,21 @@ class AppPrefs(context: Context) {
         val clean = if (day >= 29) 31 else day.coerceAtLeast(1)
         prefs.edit().putInt("month_start_day", clean).apply()
         _monthStartDay.value = clean
+    }
+
+    private val _money = MutableStateFlow(
+        Currencies.byCode(prefs.getString("currency", null)).let { currency ->
+            MoneySettings(currency, prefs.getString("grouping", null)?.let { g -> DigitGrouping.entries.firstOrNull { it.name == g } } ?: currency.defaultGrouping)
+        },
+    ).also { MoneyFormat.settings = it.value }
+
+    /** Display currency and digit grouping. Amounts are never converted; only how they're shown changes. */
+    val money: StateFlow<MoneySettings> = _money.asStateFlow()
+
+    fun setMoney(settings: MoneySettings) {
+        prefs.edit().putString("currency", settings.currency.code).putString("grouping", settings.grouping.name).apply()
+        MoneyFormat.settings = settings
+        _money.value = settings
     }
 
     private val _alertKinds = MutableStateFlow(readAlertKinds())

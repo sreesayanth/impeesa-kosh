@@ -122,6 +122,11 @@ class CaptureRepository internal constructor(
      * How long original message texts are kept (IMPLEMENTATION_PLAN.md §9.7): days, [KEEP_FOREVER] or
      * [KEEP_NEVER]. Extracted fields always stay on the transaction.
      */
+    /** The user's currency (ISO code); captures in any other go to Review. */
+    var homeCurrency: String
+        get() = prefs.getString(KEY_HOME_CURRENCY, "INR") ?: "INR"
+        set(value) = prefs.edit().putString(KEY_HOME_CURRENCY, value).apply()
+
     var messageRetentionDays: Int
         get() = prefs.getInt(KEY_RETENTION, DEFAULT_RETENTION_DAYS)
         set(value) = prefs.edit().putInt(KEY_RETENTION, value).apply()
@@ -224,7 +229,7 @@ class CaptureRepository internal constructor(
             )
         }
         val disabledApps = apps.all.filterNot(::isEnabled).map { it.packageName }.toSet()
-        return EngineContext(accounts = accounts, blockedSenders = disabledApps, zone = zone)
+        return EngineContext(accounts = accounts, blockedSenders = disabledApps, zone = zone, homeCurrency = homeCurrency)
     }
 
     private suspend fun ingestLocked(envelope: MessageEnvelope, context: EngineContext): IngestResult = db.withTransaction {
@@ -442,7 +447,7 @@ class CaptureRepository internal constructor(
             }
             if (decision.ask) askReason = if (decision.source == CategorySource.RULE) REASON_ASK_CATEGORY else REASON_AMBIGUOUS_CATEGORY
         }
-        val foreign = analysis.currency != "INR"
+        val foreign = analysis.currency != homeCurrency
         val needsReview = analysis.route == Route.REVIEW || foreign || duplicateOf != null || askReason != null
         val base = TransactionEntity(
             accountId = accountId,
@@ -701,6 +706,7 @@ class CaptureRepository internal constructor(
         const val DEFAULT_RETENTION_DAYS = 180
         val RETENTION_CHOICES = listOf(30, 90, 180, KEEP_FOREVER, KEEP_NEVER)
         private const val KEY_RETENTION = "message_retention_days"
+        private const val KEY_HOME_CURRENCY = "home_currency"
         private const val DELETED_KEEP_DAYS = 30L
         private const val KEY_WATERMARK = "inbox_watermark"
         private const val KEY_APP_PREFIX = "app_enabled:"

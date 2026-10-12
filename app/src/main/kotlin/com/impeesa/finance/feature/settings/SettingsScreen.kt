@@ -33,6 +33,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.impeesa.finance.LocalAppContainer
+import com.impeesa.finance.core.model.Money
+import com.impeesa.finance.core.model.MoneyFormat
 import com.impeesa.finance.core.ui.R as UiR
 import com.impeesa.finance.core.ui.component.ScreenHeader
 import com.impeesa.finance.core.ui.component.SectionLabel
@@ -51,8 +53,10 @@ fun SettingsScreen(
     onSecurity: () -> Unit,
     onData: () -> Unit,
     onPrivacy: () -> Unit,
+    onCurrency: () -> Unit,
 ) {
     val container = LocalAppContainer.current
+    val money by container.prefs.money.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val profile by container.prefs.profile.collectAsStateWithLifecycle()
     val version = remember {
@@ -101,6 +105,8 @@ fun SettingsScreen(
             SettingsRow(UiR.drawable.ic_accounts, "Accounts", "Banks, cards, wallets and cash", onAccounts)
             HorizontalDivider(color = colors.raised)
             SettingsRow(UiR.drawable.ic_bell, "Alerts", "Bill reminders, budgets, renewals and more", onAlerts)
+            HorizontalDivider(color = colors.raised)
+            SettingsRow(UiR.drawable.ic_accounts, "Currency & format", "${money.currency.name} · ${MoneyFormat.format(Money(1_00_000_00))}", onCurrency)
         }
 
         SectionLabel("Security & your data")

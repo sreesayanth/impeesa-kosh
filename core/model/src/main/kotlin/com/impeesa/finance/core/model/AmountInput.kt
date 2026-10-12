@@ -54,7 +54,7 @@ value class AmountInput(val text: String = "") {
 
         /** Parses free text such as "₹1,20,000.50" typed into a form field. */
         fun parse(raw: String): Money? {
-            val cleaned = raw.trim().removePrefix("₹").trim().replace(",", "")
+            val cleaned = raw.trim().removePrefix(MoneyFormat.symbol.trim()).removePrefix("₹").trim().replace(",", "")
             if (cleaned.isEmpty() || cleaned == ".") return null
             val parts = cleaned.split('.')
             if (parts.size > 2) return null

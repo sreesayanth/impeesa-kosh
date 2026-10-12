@@ -8,9 +8,9 @@
 
 **A private personal-finance app for Android that tracks your money from bank SMS and UPI alerts, automatically and entirely on your phone.**
 
-[![Download APK](https://img.shields.io/badge/Download-APK%20v0.8.0-C5F26B?style=for-the-badge&logo=android&logoColor=0B0D10&labelColor=0B0D10)](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.8.0.apk)
+[![Download APK](https://img.shields.io/badge/Download-APK%20v0.9.0-C5F26B?style=for-the-badge&logo=android&logoColor=0B0D10&labelColor=0B0D10)](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.9.0.apk)
 
-![Version](https://img.shields.io/badge/version-0.8.0-C5F26B?labelColor=15181D)
+![Version](https://img.shields.io/badge/version-0.9.0-C5F26B?labelColor=15181D)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white&labelColor=15181D)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white&labelColor=15181D)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=jetpackcompose&logoColor=white&labelColor=15181D)
@@ -35,20 +35,20 @@ The app has **no internet permission at all**. The build fails if any library tr
 <tr>
 <td width="60%">
 
-### Impeesa Kosh 0.8.0
+### Impeesa Kosh 0.9.0
 
 | | |
 |---|---|
-| **File** | [`impeesa-kosh-0.8.0.apk`](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.8.0.apk) |
+| **File** | [`impeesa-kosh-0.9.0.apk`](https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.9.0.apk) |
 | **Size** | 12.2 MB |
 | **Requires** | Android 8.0 (API 26) or newer, ARM phone |
 | **Package** | `com.impeesa.finance` |
-| **SHA-256** | `34703FEDE0A58004C1A1FB60EFEA725BC19D3F927E6E0F3E3A1BE472BF2E0194` |
+| **SHA-256** | `9522C978DA8635E70C2514C20FBC7BFD13BFEFD1B2476F839A3AE298C82EC83B` |
 
 </td>
 <td width="40%" align="center">
 
-<a href="https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.8.0.apk"><img src="https://img.shields.io/badge/⬇%20Download%20APK-0.8.0-C5F26B?style=for-the-badge&labelColor=0B0D10" alt="Download APK"></a>
+<a href="https://github.com/sreesayanth/impeesa-kosh/raw/main/release/impeesa-kosh-0.9.0.apk"><img src="https://img.shields.io/badge/⬇%20Download%20APK-0.9.0-C5F26B?style=for-the-badge&labelColor=0B0D10" alt="Download APK"></a>
 
 <sub>Or browse the <a href="release/">release folder</a></sub>
 
@@ -129,7 +129,8 @@ The app has **no internet permission at all**. The build fails if any library tr
 - Quick manual entry for cash, plus income and transfers.
 - Activity with search, filters and day totals; edit, delete and undo.
 - A simple on-device profile: set your name and avatar colour during onboarding, and change it any time from the avatar on Home.
-- Indian number formatting (₹1,84,350) everywhere.
+- **Currency & format:** rupees with Indian grouping (₹1,84,350) by default, or pick from 12 currencies (US dollar, euro, pound, dirham, riyal and more) and Indian or international digit grouping. Amounts are shown in your choice, never converted.
+- Quick access: long-press the icon for *Add spend*, *Review* or *Insights*, or add the *Add spend* Quick Settings tile.
 
 **Detection engine**
 - A pure-Kotlin rules engine: sender gatekeeping → message-type classification → amount, balance and limit selection → account mask, counterparty, date, reference and channel extraction → confidence scoring → routing (auto-log, review, info or drop).
@@ -228,7 +229,8 @@ Both batches are now part of the corpus. To contribute real formats safely, anon
 - [x] **Phase 6:** budgets (salary-cycle months, carry-over, suggestions, rebalance), Insights, Habits, charts, recurring and salary detection, insight rules
 - [x] **Phase 7:** balance snapshots and reconciliation, account and card detail, statements from SMS, auto-mark paid, alerts engine with 11 alert types, Alerts screen and settings
 - [x] **Phase 8:** app lock with fingerprint, hide balances, recents protection, encrypted backup and restore, weekly backup, CSV and PDF export, message retention, delete all data, privacy page
-- [ ] **Phase 9:** polish, accessibility, performance
+- [x] **Phase 9 (first pass):** currency settings, swipe-to-review with haptics, Remove-animations support, 48 dp touch targets, TalkBack headings and merged rows, larger-text layouts, app shortcuts and Quick Settings tile, database-recovery screen
+- [ ] **Phase 9 (needs a device):** baseline profile and benchmarks, screenshot tests at 200 % text, corpus to 1,500+ messages
 - [ ] **Phase 10:** release signing and Play Store
 
 The full plan, including the technology decisions, data model, security and testing strategy, is in **[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)**.

@@ -417,7 +417,7 @@ private fun AmountSheet(title: String, hint: String, initial: Money?, button: St
     val amount = AmountInput.parse(text)
     Column(Modifier.fillMaxWidth().imePadding().padding(start = 20.dp, end = 20.dp, bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(title, style = ImpeesaTheme.type.title, color = colors.textPrimary)
-        ImpeesaTextField(value = text, onValueChange = { text = it.take(16) }, label = "Amount", placeholder = "0", keyboardType = KeyboardType.Decimal, prefix = "₹")
+        ImpeesaTextField(value = text, onValueChange = { text = it.take(16) }, label = "Amount", placeholder = "0", keyboardType = KeyboardType.Decimal, prefix = MoneyFormat.symbol.trim())
         Text(hint, style = ImpeesaTheme.type.caption, color = colors.textSecondary)
         PrimaryButton(text = button, enabled = amount != null || (allowEmpty && text.isBlank()), onClick = { onDone(amount) })
     }
@@ -433,8 +433,8 @@ private fun BillSheet(defaultDueDay: Int?, onDone: (Money, Money?, Int) -> Unit)
     val dueDay = day.toIntOrNull()?.takeIf { it in 1..31 }
     Column(Modifier.fillMaxWidth().imePadding().padding(start = 20.dp, end = 20.dp, bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Add a bill", style = ImpeesaTheme.type.title, color = colors.textPrimary)
-        ImpeesaTextField(value = total, onValueChange = { total = it.take(16) }, label = "Total due", placeholder = "0", keyboardType = KeyboardType.Decimal, prefix = "₹")
-        ImpeesaTextField(value = min, onValueChange = { min = it.take(16) }, label = "Minimum due", placeholder = "Optional", keyboardType = KeyboardType.Decimal, prefix = "₹")
+        ImpeesaTextField(value = total, onValueChange = { total = it.take(16) }, label = "Total due", placeholder = "0", keyboardType = KeyboardType.Decimal, prefix = MoneyFormat.symbol.trim())
+        ImpeesaTextField(value = min, onValueChange = { min = it.take(16) }, label = "Minimum due", placeholder = "Optional", keyboardType = KeyboardType.Decimal, prefix = MoneyFormat.symbol.trim())
         ImpeesaTextField(value = day, onValueChange = { day = it.filter(Char::isDigit).take(2) }, label = "Due on day", placeholder = "e.g. 18", keyboardType = KeyboardType.Number)
         PrimaryButton(text = "Add bill", enabled = totalAmount != null && dueDay != null, onClick = { onDone(totalAmount!!, AmountInput.parse(min), dueDay!!) })
     }

@@ -42,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.impeesa.finance.LocalAppContainer
 import com.impeesa.finance.R
+import com.impeesa.finance.core.model.MoneyFormat
 import com.impeesa.finance.core.model.Account
 import com.impeesa.finance.core.model.AccountType
 import com.impeesa.finance.core.ui.component.AmountText
@@ -255,7 +256,7 @@ private fun AccountStrip(accounts: List<Account>, onAccounts: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Box(Modifier.size(28.dp).clip(RoundedCornerShape(9.dp)).background(Color(account.color)), contentAlignment = Alignment.Center) {
-                        Text(if (account.type == AccountType.CASH) "₹" else account.name.take(1).uppercase(), style = ImpeesaTheme.type.caption, color = Color.White)
+                        Text(if (account.type == AccountType.CASH) MoneyFormat.symbol.trim().take(1) else account.name.take(1).uppercase(), style = ImpeesaTheme.type.caption, color = Color.White)
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(

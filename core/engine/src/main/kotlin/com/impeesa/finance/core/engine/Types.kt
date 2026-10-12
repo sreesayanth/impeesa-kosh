@@ -35,6 +35,8 @@ data class EngineContext(
     val accounts: List<KnownAccount> = emptyList(),
     val blockedSenders: Set<String> = emptySet(),
     val zone: ZoneId = ZoneId.of("Asia/Kolkata"),
+    /** Amounts in any other currency go to Review as foreign (the user's display currency). */
+    val homeCurrency: String = "INR",
 )
 
 /** What to do with a message. */

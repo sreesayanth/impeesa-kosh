@@ -10,18 +10,23 @@ import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 
 /** Alert types and whether they start on (IMPLEMENTATION_PLAN.md §5.10). */
-enum class AlertKind(val title: String, val description: String, val defaultOn: Boolean = true) {
+enum class AlertKind(val title: String, private val template: String, val defaultOn: Boolean = true) {
     CARD_DUE("Card bill due", "3 days before and on the due date, until it's paid"),
     BUDGET("Budgets", "When a budget reaches your warn-at level or runs out"),
     REVIEW("Review reminder", "Once a day while transactions wait for you"),
-    LARGE_TRANSACTION("Large transaction", "Over ₹10,000, or 3× your usual on that account"),
+    LARGE_TRANSACTION("Large transaction", "Over {large}, or 3× your usual on that account"),
     UNUSUAL_DAY("Unusual spending day", "When a day is far above your usual"),
     SUBSCRIPTION("Subscriptions", "3 days before a renewal, and when a price changes"),
     NEW_ACCOUNT("New account found", "An account seen twice in your messages that you haven't added"),
     LOW_BALANCE("Low balance", "When an account drops below the amount you set", defaultOn = false),
-    BALANCE_SYNC("Balance updated", "When your bank's balance differs from Impeesa's by more than ₹500"),
+    BALANCE_SYNC("Balance updated", "When your bank's balance differs from Impeesa's by more than {sync}"),
     WEEKLY_SUMMARY("Weekly summary", "Monday morning: how last week went"),
     CAPTURE_HEALTH("Auto-capture health", "When your phone stops Impeesa reading messages"),
+    ;
+
+    /** Shown on Alert settings, with amounts in the user's currency. */
+    val description: String
+        get() = template.replace("{large}", MoneyFormat.format(Money(AlertRules.LARGE_AMOUNT_PAISE))).replace("{sync}", MoneyFormat.format(Money(500_00)))
 }
 
 /** One alert to post. [dedupeKey] makes posting idempotent: the same key is never shown twice. */

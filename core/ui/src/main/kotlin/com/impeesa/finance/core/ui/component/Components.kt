@@ -53,7 +53,7 @@ fun AmountText(
 ) {
     val hidden = LocalAmountsHidden.current
     Text(
-        text = if (hidden) "₹ ••••" else MoneyFormat.format(money, signed = signed, showPaise = showPaise),
+        text = if (hidden) MoneyFormat.symbol.trim() + " ••••" else MoneyFormat.format(money, signed = signed, showPaise = showPaise),
         modifier = modifier.semantics { contentDescription = if (hidden) "Amount hidden" else MoneyFormat.spoken(money) },
         style = style,
         color = color,
@@ -113,6 +113,8 @@ fun TxnRow(
         modifier = modifier
             .fillMaxWidth()
             .then(clickable)
+            // TalkBack reads the row as one item: title, subtitle, amount.
+            .semantics(mergeDescendants = true) {}
             .heightIn(min = 64.dp)
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,

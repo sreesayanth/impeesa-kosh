@@ -216,7 +216,7 @@ private fun AccountRowItem(account: Account, onClick: () -> Unit) {
                 Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Color(account.color)),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(if (account.type == AccountType.CASH) "₹" else account.name.take(1).uppercase(), style = ImpeesaTheme.type.title, color = Color.White)
+                Text(if (account.type == AccountType.CASH) MoneyFormat.symbol.trim().take(1) else account.name.take(1).uppercase(), style = ImpeesaTheme.type.title, color = Color.White)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(account.name, style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)

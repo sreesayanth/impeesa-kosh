@@ -16,7 +16,13 @@ class ImpeesaApp : Application() {
         container = AppContainer(this)
         container.notifier.createChannels()
         container.alertNotifier.createChannels()
-        container.ioScope.launch { container.seed() }
+        container.ioScope.launch {
+            container.seed()
+            // Capture flags messages in other currencies; keep it in step with the display currency.
+            if (container.databaseError.value == null) {
+                runCatching { container.captureRepository.homeCurrency = container.prefs.money.value.currency.code }
+            }
+        }
         if (SmsPermission.granted(this)) InboxReconcileWorker.scheduleDaily(this)
         AlertsWorker.scheduleDaily(this)
         AlertsWorker.runNow(this)

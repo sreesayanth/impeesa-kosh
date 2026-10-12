@@ -18,10 +18,16 @@ import androidx.lifecycle.lifecycleScope
 import com.impeesa.finance.capture.CaptureHealth
 import com.impeesa.finance.capture.InboxReconcileWorker
 import com.impeesa.finance.capture.SmsPermission
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import com.impeesa.finance.core.ui.component.LocalAmountsHidden
+import com.impeesa.finance.core.ui.component.LocalReduceMotion
+import com.impeesa.finance.core.ui.component.ReduceMotion
+import com.impeesa.finance.ui.LocalMoneySettings
 import com.impeesa.finance.core.ui.theme.ImpeesaTheme
 import com.impeesa.finance.navigation.ImpeesaNavHost
 import com.impeesa.finance.security.LockScreen
+import com.impeesa.finance.security.RecoveryScreen
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
@@ -45,10 +51,26 @@ class MainActivity : FragmentActivity() {
         setContent {
             val locked by container.appLock.locked.collectAsStateWithLifecycle()
             val hideBalances by container.appLock.hideBalances.collectAsStateWithLifecycle()
-            CompositionLocalProvider(LocalAppContainer provides container, LocalAmountsHidden provides hideBalances) {
+            val money by container.prefs.money.collectAsStateWithLifecycle()
+            val reduceMotion = remember { ReduceMotion.enabled(this) }
+            CompositionLocalProvider(
+                LocalAppContainer provides container,
+                LocalAmountsHidden provides hideBalances,
+                LocalReduceMotion provides reduceMotion,
+                // Formatted amounts are computed in view models and composables; a currency change redraws them all.
+                LocalMoneySettings provides money,
+            ) {
                 ImpeesaTheme {
+                    val databaseError by container.databaseError.collectAsStateWithLifecycle()
                     Box(Modifier.fillMaxSize()) {
-                        ImpeesaNavHost(pendingLink = pendingLink, onLinkHandled = { pendingLink.value = null })
+                        val error = databaseError
+                        if (error != null) {
+                            RecoveryScreen(error)
+                        } else {
+                            key(money) {
+                                ImpeesaNavHost(pendingLink = pendingLink, onLinkHandled = { pendingLink.value = null })
+                            }
+                        }
                         if (locked) LockScreen()
                     }
                 }

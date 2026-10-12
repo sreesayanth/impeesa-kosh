@@ -39,6 +39,7 @@ import com.impeesa.finance.core.data.CategoryRepository
 import com.impeesa.finance.core.data.RuleDraft
 import com.impeesa.finance.core.engine.category.RuleAction
 import com.impeesa.finance.core.engine.category.RuleMatch
+import com.impeesa.finance.core.model.MoneyFormat
 import com.impeesa.finance.core.model.Account
 import com.impeesa.finance.core.model.AmountInput
 import com.impeesa.finance.core.model.Category
@@ -250,8 +251,8 @@ fun RuleEditorScreen(ruleId: Long, onBack: () -> Unit) {
                 }
             }
             RuleMatch.AMOUNT_RANGE -> Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ImpeesaTextField(form.minText, { t -> viewModel.update { it.copy(minText = t) } }, label = "From", placeholder = "Any", keyboardType = KeyboardType.Decimal, prefix = "₹", modifier = Modifier.weight(1f))
-                ImpeesaTextField(form.maxText, { t -> viewModel.update { it.copy(maxText = t) } }, label = "Up to", placeholder = "Any", keyboardType = KeyboardType.Decimal, prefix = "₹", modifier = Modifier.weight(1f))
+                ImpeesaTextField(form.minText, { t -> viewModel.update { it.copy(minText = t) } }, label = "From", placeholder = "Any", keyboardType = KeyboardType.Decimal, prefix = MoneyFormat.symbol.trim(), modifier = Modifier.weight(1f))
+                ImpeesaTextField(form.maxText, { t -> viewModel.update { it.copy(maxText = t) } }, label = "Up to", placeholder = "Any", keyboardType = KeyboardType.Decimal, prefix = MoneyFormat.symbol.trim(), modifier = Modifier.weight(1f))
             }
         }
 

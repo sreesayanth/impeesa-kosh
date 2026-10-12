@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -71,6 +72,7 @@ import com.impeesa.finance.feature.profile.ProfileSetupScreen
 import com.impeesa.finance.feature.rules.CategoryEditorScreen
 import com.impeesa.finance.feature.rules.RuleEditorScreen
 import com.impeesa.finance.feature.rules.RulesScreen
+import com.impeesa.finance.feature.settings.CurrencyScreen
 import com.impeesa.finance.feature.settings.DataScreen
 import com.impeesa.finance.feature.settings.PrivacyScreen
 import com.impeesa.finance.feature.settings.SecurityScreen
@@ -110,6 +112,7 @@ import com.impeesa.finance.core.ui.R as UiR
 @Serializable data object SecurityRoute
 @Serializable data object DataRoute
 @Serializable data object PrivacyRoute
+@Serializable data object CurrencyRoute
 
 private data class Tab(val route: Any, @StringRes val label: Int, @DrawableRes val icon: Int)
 
@@ -139,6 +142,7 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
             target == "accounts" -> navController.switchTab(AccountsRoute)
             target == "sources" -> navController.navigate(SourcesRoute) { launchSingleTop = true }
             target == "alerts" -> navController.navigate(AlertsRoute) { launchSingleTop = true }
+            target == "add" -> navController.navigate(AddTransactionRoute()) { launchSingleTop = true }
         }
         onLinkHandled()
     }
@@ -188,8 +192,10 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit) {
                     onSecurity = { navController.navigate(SecurityRoute) },
                     onData = { navController.navigate(DataRoute) },
                     onPrivacy = { navController.navigate(PrivacyRoute) },
+                    onCurrency = { navController.navigate(CurrencyRoute) },
                 )
             }
+            composable<CurrencyRoute> { CurrencyScreen(onBack = { navController.popBackStack() }) }
             composable<SecurityRoute> { SecurityScreen(onBack = { navController.popBackStack() }) }
             composable<DataRoute> { DataScreen(onBack = { navController.popBackStack() }) }
             composable<PrivacyRoute> { PrivacyScreen(onBack = { navController.popBackStack() }) }
@@ -362,7 +368,8 @@ private fun BottomBar(
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .fillMaxWidth()
-            .height(68.dp)
+            // Grows with large text instead of clipping the labels (§11.4).
+            .heightIn(min = 68.dp)
             .clip(shape)
             .background(colors.card.copy(alpha = 0.96f))
             .border(1.dp, colors.line, shape)

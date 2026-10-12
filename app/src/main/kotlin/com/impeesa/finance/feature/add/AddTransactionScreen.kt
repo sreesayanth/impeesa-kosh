@@ -169,7 +169,7 @@ private fun AddTransactionContent(
                     liveRegion = LiveRegionMode.Polite
                 },
             ) {
-                Text("₹", style = ImpeesaTheme.type.headline, color = colors.textTertiary, modifier = Modifier.padding(top = 10.dp, end = 4.dp))
+                Text(MoneyFormat.symbol.trim(), style = ImpeesaTheme.type.headline, color = colors.textTertiary, modifier = Modifier.padding(top = 10.dp, end = 4.dp))
                 Text(state.input.display(), style = ImpeesaTheme.type.hero.copy(fontSize = ImpeesaTheme.type.hero.fontSize * 1.15f), color = amountColor, maxLines = 1)
             }
             Text(

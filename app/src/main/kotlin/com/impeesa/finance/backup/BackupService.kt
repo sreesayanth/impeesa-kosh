@@ -16,7 +16,10 @@ import com.impeesa.finance.AppContainer
 import com.impeesa.finance.ImpeesaApp
 import com.impeesa.finance.core.data.OpenedBackup
 import com.impeesa.finance.core.data.capture.CaptureRepository
+import com.impeesa.finance.core.model.Currencies
+import com.impeesa.finance.core.model.DigitGrouping
 import com.impeesa.finance.core.model.MoneyFormat
+import com.impeesa.finance.core.model.MoneySettings
 import com.impeesa.finance.core.model.alerts.AlertKind
 import com.impeesa.finance.core.model.analytics.Flows
 import com.impeesa.finance.core.model.analytics.Period
@@ -50,6 +53,8 @@ class BackupService(private val context: Context, private val container: AppCont
             "month_start_day" to p.monthStartDay.value.toString(),
             "alert_kinds" to p.enabledAlerts.value.joinToString(",") { it.name },
             "message_retention_days" to container.captureRepository.messageRetentionDays.toString(),
+            "currency" to p.money.value.currency.code,
+            "grouping" to p.money.value.grouping.name,
         )
     }
 
@@ -62,6 +67,12 @@ class BackupService(private val context: Context, private val container: AppCont
             AlertKind.entries.forEach { p.setAlertEnabled(it, it.name in on) }
         }
         settings["message_retention_days"]?.toIntOrNull()?.let { container.captureRepository.messageRetentionDays = it }
+        settings["currency"]?.let { code ->
+            val currency = Currencies.byCode(code)
+            val grouping = settings["grouping"]?.let { g -> DigitGrouping.entries.firstOrNull { it.name == g } } ?: currency.defaultGrouping
+            p.setMoney(MoneySettings(currency, grouping))
+            container.captureRepository.homeCurrency = currency.code
+        }
     }
 
     // ------------------------------------------------------------ manual backup and restore

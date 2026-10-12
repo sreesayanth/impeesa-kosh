@@ -125,7 +125,7 @@ class ReviewViewModel(
             reasonLabel = when (reviewReason) {
                 "POSSIBLE_DUPLICATE" -> "Possible duplicate of " + (duplicateCounterparty ?: "a payment") +
                     " from " + (if (duplicateSource == "SMS") "a bank SMS" else "an app notification") + " a few minutes apart"
-                "FOREIGN_CURRENCY" -> "Foreign currency — check the amount in rupees"
+                "FOREIGN_CURRENCY" -> "Different currency ($currency) — check the amount in yours"
                 "FAILED_BUT_DEBITED" -> "Debited, but the bank says it failed"
                 "UNKNOWN_SENDER" -> "From a sender we don't know yet"
                 "AMBIGUOUS_CATEGORY" -> "You've sorted ${counterparty ?: "this merchant"} in different ways — pick the right one"

@@ -1,5 +1,20 @@
 package com.impeesa.finance.feature.review
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.IntOffset
+import com.impeesa.finance.core.ui.component.LocalReduceMotion
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -122,9 +137,39 @@ private fun CurrentCard(
     onIgnore: () -> Unit,
 ) {
     val colors = ImpeesaTheme.colors
+    // Swipe right to confirm (or keep both), left for not spending (or same payment). The buttons do the
+    // same, so swiping is a shortcut, not the only way (IMPLEMENTATION_PLAN.md §11.2).
+    val offset = remember(card.id) { Animatable(0f) }
+    val haptics = LocalHapticFeedback.current
+    val reduceMotion = LocalReduceMotion.current
+    val scope = rememberCoroutineScope()
     Column(
         Modifier
             .fillMaxWidth()
+            .offset { IntOffset(offset.value.roundToInt(), 0) }
+            .graphicsLayer { rotationZ = offset.value / 80f }
+            .pointerInput(card.id) {
+                val threshold = size.width * 0.3f
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        scope.launch {
+                            val target = offset.value
+                            when {
+                                target > threshold || target < -threshold -> {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    if (!reduceMotion) offset.animateTo(if (target > 0) size.width * 1.4f else -size.width * 1.4f, tween(180))
+                                    if (target > 0) onConfirm() else onIgnore()
+                                }
+                                else -> offset.animateTo(0f, spring(dampingRatio = 0.7f))
+                            }
+                        }
+                    },
+                    onDragCancel = { scope.launch { offset.animateTo(0f) } },
+                ) { change, drag ->
+                    change.consume()
+                    scope.launch { offset.snapTo(offset.value + drag) }
+                }
+            }
             .clip(RoundedCornerShape(28.dp))
             .background(colors.card)
             .border(1.dp, colors.line, RoundedCornerShape(28.dp))

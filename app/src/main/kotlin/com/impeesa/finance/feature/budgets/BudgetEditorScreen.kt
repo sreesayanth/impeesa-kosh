@@ -208,7 +208,7 @@ fun BudgetEditorScreen(budgetId: Long, onBack: () -> Unit) {
             label = "Amount per month",
             placeholder = "e.g. 10,000",
             keyboardType = KeyboardType.Decimal,
-            prefix = "₹",
+            prefix = MoneyFormat.symbol.trim(),
         )
         state.suggestion?.let { s ->
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

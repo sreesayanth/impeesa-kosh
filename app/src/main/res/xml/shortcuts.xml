@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the launcher icon (IMPLEMENTATION_PLAN.md §5.13). Each opens through the app lock. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="add"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_add"
+        android:shortcutLongLabel="@string/shortcut_add_long">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.impeesa.finance" android:targetClass="com.impeesa.finance.MainActivity">
+            <extra android:name="open" android:value="add" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="review"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_review"
+        android:shortcutLongLabel="@string/shortcut_review_long">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.impeesa.finance" android:targetClass="com.impeesa.finance.MainActivity">
+            <extra android:name="open" android:value="review" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="insights"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_insights"
+        android:shortcutLongLabel="@string/shortcut_insights_long">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.impeesa.finance" android:targetClass="com.impeesa.finance.MainActivity">
+            <extra android:name="open" android:value="insights" />
+        </intent>
+    </shortcut>
+</shortcuts>
