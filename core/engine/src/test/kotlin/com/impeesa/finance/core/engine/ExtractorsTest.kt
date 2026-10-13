@@ -16,6 +16,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Instant
 import java.time.LocalDate
 import kotlin.random.Random
 
@@ -48,6 +49,26 @@ class ExtractorsTest {
         assertEquals(LocalDate.of(2026, 10, 4), DateExtractor.extract("on 4 October 2026 at", received))
         assertEquals(LocalDate.of(2026, 10, 9), DateExtractor.extract("On 2026-10-09:18:10:22", received))
         assertEquals(LocalDate.of(2026, 10, 6), DateExtractor.extract("on 06/10/2026", received))
+    }
+
+    @Test
+    fun `month-first dates for issuers that write them`() {
+        // Read day first, 10/9/26 would be 10 September: still inside the window, so only the template can tell.
+        assertEquals(LocalDate.of(2026, 10, 9), DateExtractor.extract("on 10/9/26, 8:15 PM", received, monthFirst = true))
+        assertEquals(LocalDate.of(2026, 9, 29), DateExtractor.extract("on 9/29/26, 12:46 PM", received, monthFirst = true))
+    }
+
+    @Test
+    fun `CSB RuPay card spends are logged with the template's month-first date`() {
+        val envelope = MessageEnvelope(
+            MessageSource.SMS,
+            "JX-JTEDGE-S",
+            "Rs.245.00 debited to your Edge CSB Bank RuPay Credit Card ending 4417 on 10/9/26, 8:15 PM - (UPI Ref no.628812345670). To dispute, call 8045219280.",
+            Instant.parse("2026-10-11T07:00:00Z"),
+        )
+        val analysis = DetectionEngine.withBundledData().analyze(envelope)
+        assertEquals(Route.AUTO_LOG, analysis.route)
+        assertEquals(LocalDate.of(2026, 10, 9), analysis.date)
     }
 
     @Test

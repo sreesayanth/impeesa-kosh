@@ -34,6 +34,17 @@ object TransferHints {
     )
     private val reversal = Regex("\\b(reversal|reversed|failed txn|failed transaction|failed upi)\\b", options)
 
+    /**
+     * The card itself was charged: "Rs.300 debited to your … RuPay Credit Card" is a UPI spend on the card,
+     * not a bill payment. A bank account in between ("debited from A/c XX12 towards your Credit Card") keeps
+     * it a bill payment.
+     */
+    private val cardCharged = Regex(
+        "\\b(?:debited|charged|spent|for using)\\s+(?:to|on|from|using|via|with)?\\s*(?:your\\s+)?" +
+            "(?:(?!\\b(?:a/?c|acct|account)\\b)[^.]){0,40}?credit card",
+        options,
+    )
+
     fun classify(
         envelope: MessageEnvelope,
         analysis: Analysis,
@@ -44,7 +55,7 @@ object TransferHints {
         val payee = analysis.counterparty.orEmpty()
         return when {
             direction == Direction.DEBIT && analysis.channel == Channel.ATM -> MovementKind.ATM_WITHDRAWAL
-            direction == Direction.DEBIT && (
+            direction == Direction.DEBIT && !cardCharged.containsMatchIn(text) && (
                 payee.contains("credit card", ignoreCase = true) ||
                     analysis.merchant?.key == "CRED" ||
                     creditCardPayee.containsMatchIn(text)

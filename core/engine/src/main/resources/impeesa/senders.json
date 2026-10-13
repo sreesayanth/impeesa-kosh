@@ -34,6 +34,7 @@
   {"code": "SCBANK", "institution": "Standard Chartered", "kind": "BANK"},
   {"code": "AMEXIN", "institution": "American Express", "kind": "CARD"},
   {"code": "ONECRD", "institution": "OneCard", "kind": "CARD"},
+  {"code": "JTEDGE", "institution": "Jupiter Edge CSB Bank", "kind": "CARD"},
   {"code": "PAYTMB", "institution": "Paytm Payments Bank", "kind": "PAYMENTS_BANK"},
   {"code": "AIRBNK", "institution": "Airtel Payments Bank", "kind": "PAYMENTS_BANK"},
   {"code": "JIOPBK", "institution": "Jio Payments Bank", "kind": "PAYMENTS_BANK"},

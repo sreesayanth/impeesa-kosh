@@ -37,11 +37,19 @@
       "pattern": "Rs\\.?\\s?(?<amount>[\\d,]+(?:\\.\\d{1,2})?) withdrawn from A/c (?:XX|\\*)(?<mask>\\d{3,6}) at ATM \\S+ on (?<date>\\d{2}-\\d{2}-\\d{2,4})\\.?(?: Avl Bal Rs\\.?\\s?(?<balance>[\\d,]+(?:\\.\\d{1,2})?))?"
     },
     {
+      "id": "csb_rupay_card_upi",
+      "senders": ["JTEDGE"],
+      "direction": "DEBIT",
+      "channel": "UPI",
+      "monthFirst": true,
+      "pattern": "Rs\\.?\\s?(?<amount>[\\d,]+(?:\\.\\d{1,2})?) debited to your (?:Edge )?CSB Bank RuPay Credit Card ending (?<mask>\\d{4}) on (?<date>\\d{1,2}/\\d{1,2}/\\d{2,4}),? \\d{1,2}:\\d{2}\\s?[AP]M\\s*-\\s*\\(UPI Ref no\\.?\\s?(?<ref>\\d{9,16})\\)"
+    },
+    {
       "id": "icici_card_spend",
       "senders": ["ICICIT", "ICICIB"],
       "direction": "DEBIT",
       "channel": "CARD",
-      "pattern": "INR (?<amount>[\\d,]+(?:\\.\\d{1,2})?) spent on ICICI Bank Card (?:XX)?(?<mask>\\d{4}) on (?<date>\\d{2}-[A-Za-z]{3}-\\d{2,4}) at (?<merchant>.+?)\\. Avl Lmt: INR (?<limit>[\\d,]+(?:\\.\\d{1,2})?)"
+      "pattern": "INR (?<amount>[\\d,]+(?:\\.\\d{1,2})?) spent (?:on|using) ICICI Bank Card (?:XX)?(?<mask>\\d{4}) on (?<date>\\d{2}-[A-Za-z]{3}-\\d{2,4}) (?:at|on) (?<merchant>.+?)\\. Avl (?:Lmt|Limit): INR (?<limit>[\\d,]+(?:\\.\\d{1,2})?)"
     },
     {
       "id": "icici_acct_debit",

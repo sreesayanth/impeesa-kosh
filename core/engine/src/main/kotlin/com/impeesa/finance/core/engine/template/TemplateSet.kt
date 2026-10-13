@@ -18,6 +18,8 @@ data class TemplateSpec(
     val channel: Channel = Channel.OTHER,
     /** Java regex with named groups: amount, mask, merchant, date, ref, balance, limit. */
     val pattern: String,
+    /** The date group reads month first ("10/8/26" is 8 October), as some card issuers write it. */
+    val monthFirst: Boolean = false,
 )
 
 @Serializable

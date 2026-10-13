@@ -44,6 +44,22 @@ class TransferHintsTest {
     )
 
     @Test
+    fun `UPI spend charged to a RuPay credit card is not a card payment`() = assertEquals(
+        MovementKind.NORMAL,
+        kind(
+            "JX-JTEDGE-S",
+            "Rs.245.00 debited to your Edge CSB Bank RuPay Credit Card ending 4417 on 10/9/26, 8:15 PM - (UPI Ref no.628812345670). " +
+                "To dispute, call 8045219280. Thanks for using the Jupiter App.",
+        ),
+    )
+
+    @Test
+    fun `card bill paid from an account to your card`() = assertEquals(
+        MovementKind.CARD_PAYMENT,
+        kind("AD-AXISBK", "INR 5,000.00 debited from A/c no. XX4821 on 11-10-26 for payment to your Axis Bank Credit Card XX4455."),
+    )
+
+    @Test
     fun `reversal of a failed payment`() = assertEquals(
         MovementKind.REVERSAL,
         kind("VM-HDFCBK", "Rs.1,000.00 credited to A/c XX4821 on 11-10-26. Reversal of failed UPI txn Ref 628455009988."),

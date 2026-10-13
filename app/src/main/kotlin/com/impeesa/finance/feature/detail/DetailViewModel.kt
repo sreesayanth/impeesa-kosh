@@ -120,8 +120,8 @@ class DetailViewModel(
         val toAccount = accountList.firstOrNull { it.id == detail.toAccountId }
         val rows = buildList {
             if (detail.kind == EntryKind.TRANSFER) {
-                add(DetailRow("From", account?.displayName ?: "Archived account"))
-                add(DetailRow("To", toAccount?.displayName ?: "Archived account"))
+                add(DetailRow("From", account?.displayName ?: if (detail.accountId == null) "Not added yet" else "Archived account"))
+                add(DetailRow("To", toAccount?.displayName ?: if (detail.toAccountId == null) "Not added yet" else "Archived account"))
                 category?.let { add(DetailRow("Type", it.name, it.color)) }
             } else {
                 add(DetailRow("Category", category?.name ?: "Choose", category?.color, hint = whyLabel(detail, category), opensCategory = true))

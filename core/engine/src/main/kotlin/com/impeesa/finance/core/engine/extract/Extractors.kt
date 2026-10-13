@@ -57,6 +57,8 @@ object CounterpartyExtractor {
         Regex("^(.{2,40}?)\\s+sent you\\b", IGNORE),
         Regex("\\bpayment of\\s+(?:₹|rs\\.?|inr)\\s*[\\d,.]+\\s+to\\s+(.+?)(?=\\s+(?:was\\s+)?successful|$stop)", IGNORE),
         Regex("\\b(?:paid|sent)\\s+(?:(?:₹|rs\\.?|inr)\\s*[\\d,.]+\\s+)?to\\s+(.+?)$stop", IGNORE),
+        // ICICI cards: "spent using ICICI Bank Card XX7703 on 04-Oct-26 on Google Play."
+        Regex("\\bon\\s+\\d{1,2}-[A-Za-z]{3}-\\d{2,4}\\s+on\\s+([A-Za-z][A-Za-z0-9 &*.'\\-]{1,40}?)$stop", IGNORE),
         Regex("\\bat\\s+([A-Za-z][A-Za-z0-9 &*.'\\-]{1,40}?)$stop", IGNORE),
         Regex("\\bto\\s+([\\w.\\-]+@[A-Za-z]+)", IGNORE),
         Regex("\\btowards\\s+([A-Za-z0-9][A-Za-z0-9 /&.\\-]{1,60}?)(?=\\s+for\\s|\\s+on\\s|\\.\\s|\\.$|$)", IGNORE),

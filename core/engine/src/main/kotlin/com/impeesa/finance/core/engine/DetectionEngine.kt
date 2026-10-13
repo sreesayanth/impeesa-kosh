@@ -54,7 +54,8 @@ class DetectionEngine(
         val mask = template?.mask ?: AccountMaskExtractor.extract(text)
         val counterparty = template?.merchant ?: CounterpartyExtractor.extract(text)
         val reference = template?.reference ?: ReferenceExtractor.extract(text)
-        val date = template?.date?.let { DateExtractor.extract(it, received) } ?: DateExtractor.extract(text, received)
+        val date = template?.date?.let { DateExtractor.extract(it, received, monthFirst = template.spec.monthFirst) }
+            ?: DateExtractor.extract(text, received).takeUnless { template?.spec?.monthFirst == true }
         val channel = template?.spec?.channel?.takeIf { it != Channel.OTHER } ?: ChannelDetector.detect(text)
         val balance = template?.balance ?: amounts.balance ?: amountMinor.takeIf { type == MessageType.BALANCE }
         val limit = template?.limit ?: amounts.limit
