@@ -182,7 +182,15 @@ class CaptureRepository internal constructor(
         val now = clock.millis()
         val watermark = prefs.getLong(KEY_WATERMARK, 0L)
         val since = if (watermark == 0L) now - Duration.ofDays(2).toMillis() else watermark - Duration.ofDays(2).toMillis()
-        return importInbox(since)
+        return importInbox(maxOf(since, prefs.getLong(KEY_CAPTURE_FROM, 0L)))
+    }
+
+    /**
+     * "Start from now": the catch-up never reads messages that were already on the phone at this
+     * moment. Only a history import the user asks for later reaches back past it.
+     */
+    fun startFromNow() {
+        prefs.edit().putLong(KEY_CAPTURE_FROM, clock.millis()).apply()
     }
 
     /**
@@ -769,6 +777,7 @@ class CaptureRepository internal constructor(
         private const val KEY_HOME_CURRENCY = "home_currency"
         private const val DELETED_KEEP_DAYS = 30L
         private const val KEY_WATERMARK = "inbox_watermark"
+        private const val KEY_CAPTURE_FROM = "capture_from"
         private const val KEY_LEDGER_REPLAYED = "ledger_replayed_v1"
         private const val KEY_APP_PREFIX = "app_enabled:"
         private const val PARSER_VERSION = 1

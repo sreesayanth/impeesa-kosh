@@ -3,6 +3,7 @@ package com.impeesa.finance.feature.onboarding
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,10 +12,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -25,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
@@ -47,23 +50,30 @@ import com.impeesa.finance.core.ui.component.SectionLabel
 import com.impeesa.finance.core.ui.component.SegmentedControl
 import com.impeesa.finance.core.ui.theme.ImpeesaTheme
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 private val ranges = listOf(3, 6, 12)
 
-/** History import with live progress (design board "Import"). */
+/** Look-back choices before anything is read; 0 means "from now on" (nothing already on the phone). */
+private val lookBack = listOf(0, 3, 6, 12)
+
+/**
+ * History import with live progress (design board "Import"). Nothing is read until the user picks
+ * how far back to look; [rescan] (from Auto-capture) leaves out "from now on".
+ */
 @Composable
-fun ImportScreen(onDone: () -> Unit, onReview: () -> Unit) {
+fun ImportScreen(rescan: Boolean, onDone: () -> Unit, onReview: () -> Unit) {
     val context = LocalContext.current
     val container = LocalAppContainer.current
     val colors = ImpeesaTheme.colors
     var months by rememberSaveable { mutableIntStateOf(6) }
+    // The range being read; 0 until the user starts.
     var started by rememberSaveable { mutableIntStateOf(0) }
 
-    LaunchedEffect(months) {
-        if (started != months) {
-            HistoryImportWorker.start(context, months)
-            started = months
-        }
+    fun read(range: Int) {
+        HistoryImportWorker.start(context, range)
+        months = range
+        started = range
     }
 
     val progressFlow = remember(context) {
@@ -86,6 +96,51 @@ fun ImportScreen(onDone: () -> Unit, onReview: () -> Unit) {
         next()
     }
 
+    if (started == 0) {
+        OnboardingScaffold(step = 3) {
+            Text(
+                if (rescan) "How far back?" else "Read past messages?",
+                style = ImpeesaTheme.type.display,
+                color = colors.textPrimary,
+                modifier = Modifier.semantics { heading() },
+            )
+            Text(
+                if (rescan) {
+                    "Kosh will look through bank SMS already on this phone. Anything it logged before isn't added twice."
+                } else {
+                    "Kosh can log spends from bank SMS already on this phone, or only from messages that arrive from now on."
+                },
+                style = ImpeesaTheme.type.body,
+                color = colors.textSecondary,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SectionLabel("Look back")
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(colors.card)) {
+                    lookBack.filter { !rescan || it > 0 }.forEach { range ->
+                        LookBackRow(range, selected = range == months) { months = range }
+                    }
+                }
+            }
+            Text(
+                "Everything is read on this phone. OTPs, offers and personal chats are skipped and never saved.",
+                style = ImpeesaTheme.type.caption,
+                color = colors.textTertiary,
+            )
+            PrimaryButton(
+                text = if (months == 0) "Start from now" else "Read messages",
+                onClick = {
+                    if (months == 0) {
+                        container.ioScope.launch { container.captureRepository.startFromNow() }
+                        finish(onDone)
+                    } else {
+                        read(months)
+                    }
+                },
+            )
+        }
+        return
+    }
+
     OnboardingScaffold(step = 3) {
         Text(
             if (progress.done) "You're all set" else "Reading your messages",
@@ -104,7 +159,7 @@ fun ImportScreen(onDone: () -> Unit, onReview: () -> Unit) {
             SegmentedControl(
                 options = listOf("3 months", "6 months", "1 year"),
                 selectedIndex = ranges.indexOf(months),
-                onSelect = { months = ranges[it] },
+                onSelect = { if (ranges[it] != started) read(ranges[it]) },
             )
         }
         ProgressCard(progress)
@@ -130,6 +185,31 @@ fun ImportScreen(onDone: () -> Unit, onReview: () -> Unit) {
                     .padding(14.dp),
             )
         }
+    }
+}
+
+@Composable
+private fun LookBackRow(months: Int, selected: Boolean, onClick: () -> Unit) {
+    val colors = ImpeesaTheme.colors
+    val (title, detail) = when (months) {
+        0 -> "From now on" to "Skip messages already on this phone"
+        6 -> "Last 6 months" to "Recommended"
+        12 -> "Last year" to null
+        else -> "Last $months months" to null
+    }
+    Row(
+        Modifier.fillMaxWidth().selectable(selected = selected, role = Role.RadioButton, onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = ImpeesaTheme.type.body, color = colors.textPrimary)
+            if (detail != null) Text(detail, style = ImpeesaTheme.type.caption, color = colors.textTertiary)
+        }
+        Box(
+            Modifier.size(22.dp).clip(CircleShape).border(2.dp, if (selected) colors.lime else colors.line, CircleShape).padding(5.dp)
+                .clip(CircleShape).background(if (selected) colors.lime else Color.Transparent),
+        )
     }
 }
 

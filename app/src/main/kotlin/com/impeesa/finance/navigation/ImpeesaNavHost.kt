@@ -94,7 +94,7 @@ import com.impeesa.finance.core.ui.R as UiR
 @Serializable data class AccountFormRoute(val id: Long = 0L)
 @Serializable data object WelcomeRoute
 @Serializable data object SmsPermissionRoute
-@Serializable data object ImportRoute
+@Serializable data class ImportRoute(val rescan: Boolean = false)
 @Serializable data object ReviewRoute
 @Serializable data object SourcesRoute
 @Serializable data object ProfileSetupRoute
@@ -221,7 +221,7 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit, o
             composable<SmsPermissionRoute> {
                 SmsPermissionScreen(
                     onGranted = {
-                        navController.navigate(ImportRoute) { popUpTo<SmsPermissionRoute> { inclusive = true } }
+                        navController.navigate(ImportRoute()) { popUpTo<SmsPermissionRoute> { inclusive = true } }
                     },
                     onSkip = {
                         val inOnboarding = navController.previousBackStackEntry?.destination?.hasRoute(ProfileSetupRoute::class) == true
@@ -229,8 +229,9 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit, o
                     },
                 )
             }
-            composable<ImportRoute> {
+            composable<ImportRoute> { entry ->
                 ImportScreen(
+                    rescan = entry.toRoute<ImportRoute>().rescan,
                     onDone = { finishOnboarding(HomeRoute) },
                     onReview = {
                         finishOnboarding(HomeRoute)
@@ -244,7 +245,7 @@ fun ImpeesaNavHost(pendingLink: StateFlow<String?>, onLinkHandled: () -> Unit, o
                 SourcesScreen(
                     onBack = { navController.popBackStack() },
                     onEnableSms = { navController.navigate(SmsPermissionRoute) },
-                    onRescan = { navController.navigate(ImportRoute) },
+                    onRescan = { navController.navigate(ImportRoute(rescan = true)) },
                 )
             }
             composable<HomeRoute> {
