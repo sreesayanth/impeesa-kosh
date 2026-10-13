@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,16 +7,36 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+/**
+ * The Play upload key, from keystore.properties at the project root (never committed; see
+ * docs/PUBLISHING.md). Without that file, release builds use the debug key so local and CI builds run.
+ */
+val uploadKey = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use(::load)
+}
+
 android {
     namespace = "com.impeesa.finance"
-    compileSdk = 35
+    compileSdk = 36
+
+    signingConfigs {
+        if (!uploadKey.isEmpty) {
+            create("upload") {
+                storeFile = rootProject.file(uploadKey.getProperty("storeFile"))
+                storePassword = uploadKey.getProperty("storePassword")
+                keyAlias = uploadKey.getProperty("keyAlias")
+                keyPassword = uploadKey.getProperty("keyPassword")
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.impeesa.finance"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 15
-        versionName = "0.9.4"
+        targetSdk = 36
+        versionCode = 16
+        versionName = "0.9.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -25,8 +47,8 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // Phones only; x86 native libs (emulators) stay in debug builds.
             ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
-            // Signing is configured at release time (Phase 10); debug key keeps local release builds runnable.
-            signingConfig = signingConfigs.getByName("debug")
+            // Play rejects debug-signed bundles, so a missing upload key can't slip through to the store.
+            signingConfig = signingConfigs.findByName("upload") ?: signingConfigs.getByName("debug")
         }
     }
 
