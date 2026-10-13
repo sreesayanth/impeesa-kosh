@@ -1,7 +1,11 @@
 package com.impeesa.finance.feature.settings
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,11 +23,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.impeesa.finance.R
 import com.impeesa.finance.core.ui.component.ScreenHeader
 import com.impeesa.finance.core.ui.component.SectionLabel
 import com.impeesa.finance.core.ui.theme.ImpeesaTheme
+
+/** Published from docs/privacy-policy.md; Google Play requires it to be reachable inside the app. */
+private const val PRIVACY_POLICY_URL = "https://sreesayanth.github.io/kosh/privacy-policy.html"
+private const val PRIVACY_CONTACT = "sreesayanth@proton.me"
 
 /** In-app privacy commitments and about (IMPLEMENTATION_PLAN.md §12.5). Plain words, no legalese. */
 @Composable
@@ -80,6 +89,24 @@ fun PrivacyScreen(onBack: () -> Unit) {
                     style = ImpeesaTheme.type.caption,
                     color = colors.textSecondary,
                 )
+            }
+        }
+
+        SectionLabel("Privacy policy")
+        Card {
+            // Opens in the browser: Kosh itself has no internet access. The address stays readable without one.
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(role = Role.Button, onClickLabel = "Open the privacy policy") {
+                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_POLICY_URL))) }
+                    }
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text("Read the full privacy policy", style = ImpeesaTheme.type.bodyStrong, color = colors.lime)
+                Text(PRIVACY_POLICY_URL, style = ImpeesaTheme.type.caption, color = colors.textSecondary)
+                Text("Questions: $PRIVACY_CONTACT", style = ImpeesaTheme.type.caption, color = colors.textSecondary)
             }
         }
 

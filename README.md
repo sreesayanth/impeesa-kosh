@@ -239,6 +239,8 @@ The full plan, including the technology decisions, data model, security and test
 ## 📚 Project links
 
 - 📐 [Implementation plan](IMPLEMENTATION_PLAN.md)
+- 🔏 [Privacy policy](docs/privacy-policy.md)
+- 🚀 [Publishing on Google Play](docs/PUBLISHING.md)
 - 🎨 [Design canvas](https://claude.ai/artifact/7aztxLeB9VhLhyR1jpAfZ6): all 23 screens
 - 📦 [Release APKs](release/)
 
