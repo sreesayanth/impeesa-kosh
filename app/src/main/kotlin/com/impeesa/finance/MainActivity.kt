@@ -67,7 +67,9 @@ class MainActivity : FragmentActivity() {
                         if (error != null) {
                             RecoveryScreen(error)
                         } else {
-                            key(money) {
+                            // Keyed by strings: an enum's hash changes with every process, which would lose
+                            // the saved screens (setup progress, back stack) whenever Android restores the app.
+                            key(money.currency.code, money.grouping.name) {
                                 ImpeesaNavHost(
                                     pendingLink = pendingLink,
                                     onLinkHandled = { pendingLink.value = null },
@@ -102,8 +104,9 @@ class MainActivity : FragmentActivity() {
         super.onStart()
         val container = (application as ImpeesaApp).container
         container.appLock.onForeground(System.currentTimeMillis())
-        // Catch messages that arrived while the app was closed.
-        if (SmsPermission.granted(this)) InboxReconcileWorker.runNow(this)
+        // Catch messages that arrived while the app was closed. During setup the history import does
+        // this; running both would let the catch-up take recent messages and the import under-count them.
+        if (container.prefs.onboardingDone && SmsPermission.granted(this)) InboxReconcileWorker.runNow(this)
         CaptureHealth.requestRebind(this)
     }
 

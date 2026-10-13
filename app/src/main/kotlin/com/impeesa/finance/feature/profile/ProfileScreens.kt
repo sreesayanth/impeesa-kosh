@@ -22,10 +22,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -163,25 +161,44 @@ fun ProfileSetupScreen(onContinue: () -> Unit) {
         ProfileForm(name, { name = it }, colorIndex, { colorIndex = it })
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             SectionLabel("Currency")
-            Row(
+            // The list opens in place rather than in a dialog, so picking can't be lost to a second window.
+            Column(
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(colors.card)
-                    .border(1.dp, colors.line, RoundedCornerShape(16.dp))
-                    .clickable(role = Role.Button, onClickLabel = "Change currency") { choosingCurrency = true }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    .border(1.dp, colors.line, RoundedCornerShape(16.dp)),
             ) {
-                Box(Modifier.widthIn(min = 40.dp).clip(RoundedCornerShape(10.dp)).background(colors.raised).padding(8.dp), contentAlignment = Alignment.Center) {
-                    Text(currency.symbol.trim(), style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(role = Role.Button, onClickLabel = if (choosingCurrency) "Close currency list" else "Change currency") {
+                            choosingCurrency = !choosingCurrency
+                        }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Box(Modifier.widthIn(min = 40.dp).clip(RoundedCornerShape(10.dp)).background(colors.raised).padding(8.dp), contentAlignment = Alignment.Center) {
+                        Text(currency.symbol.trim(), style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text(currency.name, style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
+                        Text(currency.code, style = ImpeesaTheme.type.caption, color = colors.textTertiary)
+                    }
+                    Text(if (choosingCurrency) "Close" else "Change", style = ImpeesaTheme.type.label, color = colors.lime)
                 }
-                Column(Modifier.weight(1f)) {
-                    Text(currency.name, style = ImpeesaTheme.type.bodyStrong, color = colors.textPrimary)
-                    Text(currency.code, style = ImpeesaTheme.type.caption, color = colors.textTertiary)
+                if (choosingCurrency) {
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.line))
+                    Currencies.ALL.forEach { option ->
+                        CurrencyRow(option, selected = option.code == currencyCode) {
+                            currencyCode = option.code
+                            // Kept straight away, so going back a step doesn't undo the choice.
+                            prefs.setupCurrency = option.code
+                            choosingCurrency = false
+                        }
+                    }
                 }
-                Text("Change", style = ImpeesaTheme.type.label, color = colors.lime)
             }
             Text(
                 "Kosh reads Indian bank SMS in rupees. You can change this any time in Settings.",
@@ -208,26 +225,6 @@ fun ProfileSetupScreen(onContinue: () -> Unit) {
                 .clip(RoundedCornerShape(12.dp))
                 .clickable(role = Role.Button) { next() }
                 .padding(14.dp),
-        )
-    }
-
-    if (choosingCurrency) {
-        AlertDialog(
-            onDismissRequest = { choosingCurrency = false },
-            title = { Text("Currency") },
-            text = {
-                Column(Modifier.verticalScroll(rememberScrollState())) {
-                    Currencies.ALL.forEach { option ->
-                        CurrencyRow(option, selected = option.code == currencyCode) {
-                            currencyCode = option.code
-                            choosingCurrency = false
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = { TextButton(onClick = { choosingCurrency = false }) { Text("Cancel") } },
-            containerColor = colors.card,
         )
     }
 }

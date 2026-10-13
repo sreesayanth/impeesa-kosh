@@ -1,6 +1,7 @@
 package com.impeesa.finance.feature.onboarding
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -35,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,9 +49,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.impeesa.finance.LocalAppContainer
 import com.impeesa.finance.R
 import com.impeesa.finance.capture.InboxReconcileWorker
+import com.impeesa.finance.capture.SmsPermission
 import com.impeesa.finance.core.model.Money
 import com.impeesa.finance.core.ui.component.AmountText
 import com.impeesa.finance.core.ui.component.LetterTile
@@ -137,20 +141,28 @@ fun SmsPermissionScreen(onGranted: () -> Unit, onSkip: () -> Unit) {
     val colors = ImpeesaTheme.colors
     val context = LocalContext.current
     val container = LocalAppContainer.current
-    var denied by remember { mutableStateOf(false) }
+    // Saved: Android may restart the app while the user is in settings allowing SMS.
+    var denied by rememberSaveable { mutableStateOf(false) }
 
     val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { onGranted() }
-    val smsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-        if (result.values.all { it }) {
-            InboxReconcileWorker.scheduleDaily(context)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            } else {
-                onGranted()
-            }
+    fun continueWithSms() {
+        InboxReconcileWorker.scheduleDaily(context)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {
-            denied = true
+            onGranted()
         }
+    }
+    val smsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+        if (result.values.all { it }) continueWithSms() else denied = true
+    }
+    // Back from settings with SMS allowed there: carry on instead of showing "not allowed".
+    LifecycleResumeEffect(denied) {
+        if (denied && SmsPermission.granted(context)) {
+            denied = false
+            continueWithSms()
+        }
+        onPauseOrDispose { }
     }
 
     OnboardingScaffold(step = 2) {
@@ -171,7 +183,13 @@ fun SmsPermissionScreen(onGranted: () -> Unit, onSkip: () -> Unit) {
         Bullet("Your choice", "You can turn this off any time in your phone's settings.")
         if (denied) {
             Text(
-                "SMS access was not allowed. You can still add transactions yourself, or allow it from settings.",
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    // Apps installed outside an app store can't ask for SMS until this is allowed.
+                    "SMS access was not allowed. In settings, open Permissions → SMS. If SMS is greyed out, " +
+                        "first tap ⋮ → Allow restricted settings. You can also add transactions yourself."
+                } else {
+                    "SMS access was not allowed. You can still add transactions yourself, or allow it from settings."
+                },
                 style = ImpeesaTheme.type.caption,
                 color = colors.amber,
             )
@@ -180,10 +198,7 @@ fun SmsPermissionScreen(onGranted: () -> Unit, onSkip: () -> Unit) {
             text = if (denied) "Open settings" else "Allow SMS access",
             onClick = {
                 if (denied) {
-                    context.startActivity(
-                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                    )
+                    openAppSettings(context)
                 } else {
                     smsLauncher.launch(arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS))
                 }
@@ -203,6 +218,19 @@ fun SmsPermissionScreen(onGranted: () -> Unit, onSkip: () -> Unit) {
                 }
                 .padding(14.dp),
         )
+    }
+}
+
+/**
+ * Kosh's App info, opened in this task. As a new task, Android would bring back any Settings
+ * task left open earlier (say on Storage) instead of showing this page.
+ */
+private fun openAppSettings(context: Context) {
+    val appInfo = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
+    try {
+        context.startActivity(appInfo)
+    } catch (_: Exception) {
+        context.startActivity(appInfo.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 }
 

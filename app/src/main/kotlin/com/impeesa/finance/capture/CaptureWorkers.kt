@@ -72,7 +72,9 @@ class InboxReconcileWorker(context: Context, params: WorkerParameters) : Corouti
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 "reconcile-daily",
                 ExistingPeriodicWorkPolicy.KEEP,
-                PeriodicWorkRequestBuilder<InboxReconcileWorker>(24, TimeUnit.HOURS).build(),
+                // The first run waits a day: app start already catches up, and an immediate run
+                // would race the history import during setup.
+                PeriodicWorkRequestBuilder<InboxReconcileWorker>(24, TimeUnit.HOURS).setInitialDelay(24, TimeUnit.HOURS).build(),
             )
         }
     }
