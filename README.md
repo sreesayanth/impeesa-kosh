@@ -8,9 +8,9 @@
 
 **A private personal-finance app for Android that tracks your money from bank SMS and UPI alerts, automatically and entirely on your phone.**
 
-[![Download APK](https://img.shields.io/badge/Download-APK%20v0.9.3-C5F26B?style=for-the-badge&logo=android&logoColor=0B0D10&labelColor=0B0D10)](https://github.com/sreesayanth/kosh/raw/main/release/kosh-0.9.3.apk)
+[![Download APK](https://img.shields.io/badge/Download-APK%20v0.9.4-C5F26B?style=for-the-badge&logo=android&logoColor=0B0D10&labelColor=0B0D10)](https://github.com/sreesayanth/kosh/raw/main/release/kosh-0.9.4.apk)
 
-![Version](https://img.shields.io/badge/version-0.9.3-C5F26B?labelColor=15181D)
+![Version](https://img.shields.io/badge/version-0.9.4-C5F26B?labelColor=15181D)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white&labelColor=15181D)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white&labelColor=15181D)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=jetpackcompose&logoColor=white&labelColor=15181D)
@@ -35,20 +35,20 @@ The app has **no internet permission at all**. The build fails if any library tr
 <tr>
 <td width="60%">
 
-### Kosh 0.9.3
+### Kosh 0.9.4
 
 | | |
 |---|---|
-| **File** | [`kosh-0.9.3.apk`](https://github.com/sreesayanth/kosh/raw/main/release/kosh-0.9.3.apk) |
+| **File** | [`kosh-0.9.4.apk`](https://github.com/sreesayanth/kosh/raw/main/release/kosh-0.9.4.apk) |
 | **Size** | 12.3 MB |
 | **Requires** | Android 8.0 (API 26) or newer, ARM phone |
 | **Package** | `com.impeesa.finance` |
-| **SHA-256** | `909FE8083F29FE18B313B7F13A791018E4E1D647AE9040990BCD7F60EC1296B9` |
+| **SHA-256** | `0A2F26AB1BAC661272B3F9BC2DC6E125670BA4F82A2A1501213FDBD31EB7521B` |
 
 </td>
 <td width="40%" align="center">
 
-<a href="https://github.com/sreesayanth/kosh/raw/main/release/kosh-0.9.3.apk"><img src="https://img.shields.io/badge/⬇%20Download%20APK-0.9.3-C5F26B?style=for-the-badge&labelColor=0B0D10" alt="Download APK"></a>
+<a href="https://github.com/sreesayanth/kosh/raw/main/release/kosh-0.9.4.apk"><img src="https://img.shields.io/badge/⬇%20Download%20APK-0.9.4-C5F26B?style=for-the-badge&labelColor=0B0D10" alt="Download APK"></a>
 
 <sub>Or browse the <a href="release/">release folder</a></sub>
 

@@ -1,5 +1,14 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#FFFFFFFF" android:pathData="M12,3.5a2.25,2.25 0,1 1,0 4.5a2.25,2.25 0,1 1,0 -4.5z" />
-    <path android:fillColor="#FFFFFFFF" android:pathData="M10.25,10h3.5a0.75,0.75 0,0 1,0.75 0.75v9.5a0.75,0.75 0,0 1,-0.75 0.75h-3.5a0.75,0.75 0,0 1,-0.75 -0.75v-9.5a0.75,0.75 0,0 1,0.75 -0.75z" />
+    <!-- Status-bar icon: the launcher wallet in one colour, with wider gaps so it reads at 24dp. -->
+    <group android:translateX="-7.35" android:translateY="-6.24" android:scaleX="0.0303" android:scaleY="0.0303">
+        <path android:fillColor="#FFFFFFFF"
+            android:pathData="M411,465 L420,432 Q426,410 448,400 L700,280 Q745,262 758,305 L760,319 Z" />
+        <path android:fillColor="#FFFFFFFF"
+            android:pathData="M454,490 L800,346 Q848,327 860,378 L883,490 Z" />
+        <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
+            android:pathData="M320,840 L320,612 Q320,520 412,520 L840,520 Q933,520 933,613 L933,840 Q933,932 840,932 L412,932 Q320,932 320,840 Z M822,610 L933,610 L933,814 L822,814 A102,102 0 0 1 822,610 Z" />
+        <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
+            android:pathData="M822,630 L931,630 Q957,630 957,656 L957,768 Q957,794 931,794 L822,794 A82,82 0 0 1 822,630 Z M822,682 A30,30 0 1 0 822,742 A30,30 0 1 0 822,682 Z" />
+    </group>
 </vector>
